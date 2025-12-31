@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TACTICAL_NEURAL_DECK_CLEAR</title>
+    <title>追番补番进度备忘录</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -21,10 +21,8 @@
             --neon-green: #00ff9d;
             --neon-gray: #a0a0a0;
             --card-bg: rgba(20, 20, 25, 0.6);
-            /* 定义固定栏高度 */
             --header-h: 60px;
             --filter-h: 50px;
-            /* 计算滚动区域的顶部偏移量 */
             --scroll-top: calc(var(--header-h) + var(--filter-h));
         }
 
@@ -32,93 +30,53 @@
             background-color: var(--bg-dark);
             color: #ccc;
             font-family: 'JetBrains Mono', 'Noto Sans SC', monospace;
-            /* 关键：禁用 Body 滚动，交给内部容器接管 */
             overflow: hidden; 
             height: 100dvh;
             width: 100vw;
         }
 
-        /* --- 独立的滚动容器 (Clipping Scroll View) --- */
+        /* --- 滚动容器 --- */
         #scroll-viewport {
-            position: fixed;
-            top: var(--scroll-top); /* 从筛选栏底部开始 */
-            left: 0; 
-            right: 0; 
-            bottom: 0; /* 延伸到底部 */
-            
-            overflow-y: auto; /* 开启纵向滚动 */
-            overflow-x: hidden;
-            
+            position: fixed; top: var(--scroll-top); left: 0; right: 0; bottom: 0;
+            overflow-y: auto; overflow-x: hidden;
             padding-bottom: env(safe-area-inset-bottom);
-            
-            /* 移植滚动条样式到这个容器 */
-            scrollbar-width: thin;
-            scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
+            scrollbar-width: thin; scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
         }
-
-        /* Webkit 滚动条样式定制 */
         #scroll-viewport::-webkit-scrollbar { width: 4px; }
         #scroll-viewport::-webkit-scrollbar-track { background: transparent; }
-        #scroll-viewport::-webkit-scrollbar-thumb {
-            background: rgba(0, 243, 255, 0.2); 
-            border-radius: 2px; transition: all 0.3s;
-        }
-        #scroll-viewport::-webkit-scrollbar-thumb:hover {
-            background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan);
-        }
+        #scroll-viewport::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.2); border-radius: 2px; transition: all 0.3s; }
+        #scroll-viewport::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
 
-        /* --- 动态视差背景 --- */
+        /* --- 视差背景 --- */
         #parallax-container {
-            position: fixed;
-            top: -10% ; left: -10%; width: 120%; height: 120%;
-            z-index: -1;
-            background-color: #020203;
+            position: fixed; top: -10% ; left: -10%; width: 120%; height: 120%;
+            z-index: -1; background-color: #020203;
             transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1);
-            pointer-events: none;
-            overflow: hidden;
+            pointer-events: none; overflow: hidden;
         }
-
         .bg-grid {
             position: absolute; inset: 0;
-            background-image: 
-                linear-gradient(rgba(0, 243, 255, 0.12) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.12) 1px, transparent 1px);
-            background-size: 60px 60px;
-            animation: grid-scroll 20s linear infinite;
-            transform: perspective(500px) rotateX(20deg);
-            transform-origin: center top;
-            opacity: 0.6;
+            background-image: linear-gradient(rgba(0, 243, 255, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.12) 1px, transparent 1px);
+            background-size: 60px 60px; animation: grid-scroll 20s linear infinite;
+            transform: perspective(500px) rotateX(20deg); transform-origin: center top; opacity: 0.6;
         }
-
         .bg-glow {
             position: absolute; inset: 0;
-            background: 
-                radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.25) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.2) 0%, transparent 50%);
-            filter: blur(80px);
-            mix-blend-mode: screen;
-            opacity: 0.8;
-            z-index: 0;
+            background: radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.25) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.2) 0%, transparent 50%);
+            filter: blur(80px); mix-blend-mode: screen; opacity: 0.8; z-index: 0;
         }
-
         .bg-particles {
             position: absolute; inset: 0;
             background-image: radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px);
-            background-size: 80px 80px;
-            opacity: 0.4;
-            animation: particle-float 40s linear infinite;
-            z-index: 1;
+            background-size: 80px 80px; opacity: 0.4; animation: particle-float 40s linear infinite; z-index: 1;
         }
-
         @keyframes grid-scroll { 0% { background-position: 0 0; } 100% { background-position: 0 60px; } }
         @keyframes particle-float { 0% { background-position: 0 0; } 100% { background-position: 80px 80px; } }
 
         .top-light {
             position: fixed; top: 0; left: 0; right: 0; height: 2px;
             background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), transparent);
-            z-index: 60;
-            box-shadow: 0 0 20px var(--neon-cyan);
-            animation: scan-light 4s linear infinite;
+            z-index: 60; box-shadow: 0 0 20px var(--neon-cyan); animation: scan-light 4s linear infinite;
         }
         @keyframes scan-light { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
@@ -131,7 +89,7 @@
         @keyframes glitch-anim { 0% { clip: rect(10px, 9999px, 30px, 0); transform: skew(0.5deg); } 100% { clip: rect(80px, 9999px, 100px, 0); transform: skew(-0.5deg); } }
         @keyframes glitch-anim-2 { 0% { clip: rect(60px, 9999px, 80px, 0); transform: skew(0.5deg); } 100% { clip: rect(10px, 9999px, 140px, 0); transform: skew(-0.5deg); } }
 
-        /* --- 磁悬浮卡片 --- */
+        /* 卡片 */
         .compact-card-wrapper { height: 54px; min-height: 54px; margin-bottom: 1px; perspective: 1000px; z-index: 1; position: relative; }
         .compact-card {
             background: var(--card-bg); border-bottom: 1px solid rgba(255,255,255,0.06); height: 100%; width: 100%; position: relative; overflow: visible;
@@ -146,10 +104,7 @@
             transform: scale(1.06) translateY(-6px) translateZ(20px);
             box-shadow: 0 20px 40px -5px rgba(0,0,0,0.8), 0 0 25px -5px var(--glow-color), inset 0 0 15px -10px var(--glow-color);
         }
-        .scan-line {
-            position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform: skewX(-25deg); pointer-events: none; transition: none;
-        }
+        .scan-line { position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform: skewX(-25deg); pointer-events: none; transition: none; }
         .compact-card-wrapper:hover .scan-line { left: 200%; transition: left 0.6s ease-in-out; }
         .status-bar { width: 3px; height: 100%; position: absolute; left: 0; top: 0; opacity: 0.8; transition: width 0.3s; background-color: var(--glow-color); }
         .compact-card-wrapper:hover .status-bar { width: 6px; opacity: 1; box-shadow: 0 0 10px var(--glow-color); }
@@ -157,54 +112,24 @@
         @keyframes subtle-pulse { 0%, 100% { opacity: 0.7; text-shadow: 0 0 0 transparent; } 50% { opacity: 1; text-shadow: 0 0 8px currentColor; } }
         .text-pulse { animation: subtle-pulse 2.5s infinite ease-in-out; transform: translateZ(0); backface-visibility: hidden; will-change: opacity, text-shadow; }
 
-        /* --- 顶部完全透明固定布局 (Transparent Fixed Header) --- */
+        /* 顶部栏 */
         .app-header {
-            position: fixed; top: 0; left: 0; right: 0;
-            height: var(--header-h);
-            z-index: 50;
-            background: transparent; /* 完全透明 */
-            backdrop-filter: none; /* 移除模糊 */
-            border: none;
-            display: flex; align-items: end; padding-bottom: 10px;
-            pointer-events: none; /* 允许点击穿透到背景（如果有交互需求） */
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); z-index: 50;
+            background: transparent; backdrop-filter: none; border: none;
+            display: flex; align-items: end; justify-content: space-between;
+            padding-bottom: 10px; pointer-events: none;
         }
-        /* 恢复标题的可交互性 */
         .app-header > * { pointer-events: auto; }
+        .filter-bar { position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--filter-h); z-index: 40; background: transparent; backdrop-filter: none; border: none; display: flex; align-items: center; }
+        .month-header { position: sticky; top: 0; z-index: 30; background: transparent; backdrop-filter: blur(5px); border-bottom: 1px solid var(--neon-cyan); border-top: none; box-shadow: none; margin-top: 0; }
 
-        .filter-bar {
-            position: fixed; top: var(--header-h); left: 0; right: 0;
-            height: var(--filter-h);
-            z-index: 40;
-            background: transparent; /* 完全透明 */
-            backdrop-filter: none;
-            border: none;
-            display: flex; align-items: center;
-        }
-
-        .month-header {
-            position: sticky; /* 依然相对于滚动容器粘性 */
-            top: 0; /* 粘在 scroll-viewport 的顶部 */
-            z-index: 30;
-            background: transparent;
-            /* 仅保留一条装饰线区分月份 */
-            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
-            box-shadow: 0 5px 15px -10px rgba(0,0,0,0.5); 
-            backdrop-filter: blur(5px); /* 月份条保留一点点模糊以防文字重叠太严重 */
-            margin-top: 0;
-        }
-
+        /* 弹窗与输入 */
         @keyframes holographic-pop { 
             0% { transform: scale(0.8) perspective(500px) rotateX(20deg); opacity: 0; } 
             60% { transform: scale(1.05) perspective(500px) rotateX(-5deg); opacity: 1; }
             100% { transform: scale(1) perspective(500px) rotateX(0deg); opacity: 1; } 
         }
-        .modal-enter { 
-            animation: holographic-pop 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; 
-            background-image: 
-                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
+        .modal-enter { animation: holographic-pop 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; background-image: linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px); background-size: 20px 20px; }
 
         .neon-btn { position: relative; overflow: hidden; transition: all 0.3s; }
         .neon-btn:hover { box-shadow: 0 0 25px currentColor, inset 0 0 10px currentColor; text-shadow: 0 0 8px currentColor; border-color: transparent; transform: scale(1.05); }
@@ -212,15 +137,23 @@
         .neon-btn:hover::before { opacity: 0.2; }
         @keyframes rotate-border { 100% { transform: rotate(360deg); } }
 
-        input, select, textarea { font-size: 16px !important; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; font-family: 'JetBrains Mono', monospace; transition: all 0.3s; }
-        input:focus, select:focus, textarea:focus { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) inset; outline: none; letter-spacing: 1px; }
-        
+        /* 通用输入框样式 */
+        input, textarea { 
+            font-size: 16px !important; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; font-family: 'JetBrains Mono', monospace; transition: all 0.3s;
+        }
+        input:focus, textarea:focus { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) inset; outline: none; letter-spacing: 1px; }
+
+        /* 自定义下拉框动画 */
+        @keyframes dropdown-enter {
+            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .dropdown-anim { animation: dropdown-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
         .toast-enter { animation: slideDown 0.3s ease-out forwards; }
         @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 20px); opacity: 1; } }
-
         .fab-action { transform: translateY(20px) scale(0.8); opacity: 0; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
         .group:hover .fab-action { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
     </style>
@@ -240,6 +173,7 @@
             Trash: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
             Share: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
             Download: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+            ChevronDown: () => <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" className="text-gray-500"><path d="M1 1L5 5L9 1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         };
 
         const STATUS = { TODO: 'UNWATCHED', DOING: 'WATCHING', DONE: 'COMPLETED' };
@@ -297,9 +231,56 @@
             );
         };
 
+        // --- Custom Select Component (Updated Background & Padding) ---
+        const CustomSelect = ({ value, onChange, options }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (containerRef.current && !containerRef.current.contains(event.target)) {
+                        setIsOpen(false);
+                    }
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => document.removeEventListener('mousedown', handleClickOutside);
+            }, []);
+
+            const selectedOption = options.find(o => o.value === value) || options[0];
+
+            return (
+                <div className="relative" ref={containerRef}>
+                    <div 
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`w-full p-2.5 rounded-xl bg-zinc-900 border text-sm font-mono text-center cursor-pointer transition-all duration-300 flex items-center justify-center relative ${isOpen ? 'border-cyan-500 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'border-white/10 hover:border-cyan-500/50'}`}
+                    >
+                        <span className={`${selectedOption.colorClass} font-bold tracking-wider`}>{selectedOption.label}</span>
+                        <div className={`absolute right-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                            <Icons.ChevronDown />
+                        </div>
+                    </div>
+
+                    {isOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden z-[150] shadow-2xl dropdown-anim">
+                            {options.map((opt) => (
+                                <div
+                                    key={opt.value}
+                                    onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                                    className={`py-2 text-center text-sm font-mono cursor-pointer transition-colors hover:bg-white/10 ${opt.colorClass} ${value === opt.value ? 'bg-white/5' : ''}`}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const EditModal = ({ isOpen, onClose, item, onSave, onDelete }) => {
             const [form, setForm] = useState({ name: '', date: '', ep: '', time: '', status: STATUS.TODO });
             useEffect(() => { if (isOpen) setForm(item || { name: '', date: '', ep: '', time: '', status: STATUS.TODO }); }, [isOpen, item]);
+            
             const parseDate = () => {
                 let v = form.date.replace(/[^\d]/g, ''); 
                 if (v.length === 4) setForm(f => ({...f, date: v.substring(0,2) + '.' + v.substring(2)}));
@@ -311,11 +292,19 @@
                 if (v.length === 4) setForm(f => ({...f, time: v.substring(0,2) + ':' + v.substring(2)}));
                 else if (v.length === 3) setForm(f => ({...f, time: '0' + v.substring(0,1) + ':' + v.substring(1)}));
             };
+
+            const statusOptions = [
+                { value: STATUS.TODO, label: 'WAITING', colorClass: 'text-gray-400' },
+                { value: STATUS.DOING, label: 'SYNCING', colorClass: 'text-pink-400' },
+                { value: STATUS.DONE, label: 'COMPLETE', colorClass: 'text-green-400' }
+            ];
+
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
-                    <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-hidden group">
-                        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px]"></div>
+                // 毛玻璃遮罩层 V11.14: bg-black/10 + backdrop-blur-[10px]
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
+                    <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-visible group">
+                        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px] rounded-2xl overflow-hidden"></div>
                         <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
                             <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_#0ff]"></span>{item ? 'EDIT_PROTOCOL' : 'INIT_PROTOCOL'}</h3>
                             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"><Icons.X /></button>
@@ -323,17 +312,19 @@
                         <div className="space-y-5 relative z-10">
                             <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">TARGET_NAME</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full text-lg p-3 rounded-xl bg-black/40 text-white font-bold placeholder-gray-700 focus:text-cyan-300" placeholder="Input Name..." autoFocus /></div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">DATE_LOG</label><input value={form.date} onChange={e => setForm({...form, date: e.target.value})} onBlur={parseDate} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700" placeholder="2501" /></div>
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">STATUS</label><select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center appearance-none cursor-pointer hover:border-cyan-500/50"><option value={STATUS.TODO}>WAITING</option><option value={STATUS.DOING}>SYNCING</option><option value={STATUS.DONE}>COMPLETE</option></select></div>
+                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">DATE_LOG</label><input value={form.date} onChange={e => setForm({...form, date: e.target.value})} onBlur={parseDate} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700" placeholder="25.01" /></div>
+                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">STATUS</label>
+                                    <CustomSelect value={form.status} onChange={(val) => setForm({...form, status: val})} options={statusOptions} />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="relative group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">EPISODE</label><input value={form.ep} onChange={e => setForm({...form, ep: e.target.value})} onBlur={parseEp} className="w-full p-2.5 pl-8 rounded-xl bg-black/40 text-cyan-400 font-mono placeholder-gray-700 focus:shadow-[0_0_15px_rgba(0,243,255,0.2)]" placeholder="00" /></div>
-                                <div className="relative group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">TIMESTAMP</label><input value={form.time} onChange={e => setForm({...form, time: e.target.value})} onBlur={parseTime} className="w-full p-2.5 pl-8 rounded-xl bg-black/40 text-pink-400 font-mono placeholder-gray-700 focus:shadow-[0_0_15px_rgba(255,0,85,0.2)]" placeholder="00:00" /></div>
+                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">EPISODE</label><input value={form.ep} onChange={e => setForm({...form, ep: e.target.value})} onBlur={parseEp} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-cyan-400 focus:text-cyan-300 placeholder-gray-700" placeholder="01" /></div>
+                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">TIMESTAMP</label><input value={form.time} onChange={e => setForm({...form, time: e.target.value})} onBlur={parseTime} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-pink-400 focus:text-pink-300 placeholder-gray-700" placeholder="00:00" /></div>
                             </div>
                         </div>
                         <div className="mt-8 flex gap-3 relative z-10">
                             {item && <button onClick={() => { onDelete(item.id); onClose(); }} className="p-3 text-red-500 bg-red-900/10 rounded-xl border border-red-900/30 hover:bg-red-900/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all neon-btn"><Icons.Trash /></button>}
-                            <button onClick={() => { if(form.name) { onSave({...form, id: item ? item.id : Date.now()}); onClose(); } }} className="neon-btn flex-1 bg-cyan-600/20 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm">EXECUTE_COMMAND</button>
+                            <button onClick={() => { if(form.name) { onSave({...form, id: item ? item.id : Date.now()}); onClose(); } }} className="neon-btn flex-1 bg-cyan-600/20 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm relative z-10">EXECUTE_COMMAND</button>
                         </div>
                     </div>
                 </div>
@@ -344,7 +335,8 @@
             const [code, setCode] = useState('');
             if (!isOpen) return null;
             return (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+                // 同样应用毛玻璃效果
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
                     <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-hidden group">
                         <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px]"></div>
                         <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
@@ -484,10 +476,22 @@
             }, [items, activeFilters]);
 
             const filterButtons = [
-                { key: 'ALL', label: 'ALL' }, 
-                { key: 'ACTV', label: 'ACTV' }, // Order maintained from V11.8
-                { key: 'TODO', label: 'TODO' }, 
-                { key: 'DONE', label: 'DONE' }
+                { 
+                    key: 'ALL', label: 'ALL', 
+                    style: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_15px_rgba(0,243,255,0.3)]' 
+                }, 
+                { 
+                    key: 'ACTV', label: 'SYNCING', clickKey: 'DOING',
+                    style: 'bg-pink-500/20 text-pink-400 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
+                },
+                { 
+                    key: 'TODO', label: 'WAITING', clickKey: 'TODO',
+                    style: 'bg-gray-600/40 text-gray-300 border-gray-500/50 shadow-[0_0_15px_rgba(160,160,160,0.3)]' 
+                },
+                { 
+                    key: 'DONE', label: 'COMPLETE', clickKey: 'DONE',
+                    style: 'bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_15px_rgba(0,255,157,0.3)]' 
+                }
             ];
 
             return (
@@ -499,7 +503,7 @@
                     {/* Fixed Transparent Header */}
                     <div className="app-header px-4">
                         <h1 className="text-2xl font-header glitch-text" data-text="NEURAL_DECK">NEURAL<span className="text-cyan-600">_</span>DECK</h1>
-                        <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>SYS.V11.10 // CLEAR</div>
+                        <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>SYS.V11.15 // </div>
                     </div>
                     
                     {/* Fixed Transparent Filter */}
@@ -509,30 +513,16 @@
                             if (f.key === 'ALL') {
                                 isActive = isAll;
                             } else {
-                                isActive = !isAll && (f.key === 'ACTV' ? activeFilters.includes('DOING') : activeFilters.includes(f.key));
+                                const checkKey = f.clickKey || f.key;
+                                isActive = !isAll && activeFilters.includes(checkKey);
                             }
-
-                            // Mapping visual key back to logical key for click handler
-                            const clickKey = f.key === 'ACTV' ? 'DOING' : f.key;
-
+                            const clickKey = f.clickKey || f.key;
                             return (
-                                <button 
-                                    key={f.key} 
-                                    onClick={() => toggleFilter(clickKey)} 
-                                    className={`
-                                        flex-1 py-1.5 px-1 text-xs font-header font-bold tracking-widest rounded transition-all neon-btn 
-                                        ${isActive 
-                                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,243,255,0.3)]' 
-                                            : 'text-gray-600 hover:text-gray-300 border border-transparent hover:bg-white/5'}
-                                    `}
-                                >
-                                    {f.label}
-                                </button>
+                                <button key={f.key} onClick={() => toggleFilter(clickKey)} className={`flex-1 py-1.5 px-1 text-xs font-header font-bold tracking-widest rounded transition-all neon-btn ${isActive ? `${f.style} border` : 'text-gray-600 hover:text-gray-300 border border-transparent hover:bg-white/5'}`}>{f.label}</button>
                             );
                         })}
                     </div>
 
-                    {/* Scrollable Viewport starting BELOW filters */}
                     <div id="scroll-viewport">
                         <div className="max-w-2xl mx-auto pb-24 px-0">
                             {items.length === 0 && <div className="mt-20 text-center text-gray-700 font-mono text-xs border border-dashed border-gray-800 mx-8 py-10 rounded animate-pulse">NO DATA STREAM<br/>INITIATE NEW PROTOCOL [+]</div>}
