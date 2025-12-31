@@ -1,567 +1,1742 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>追番补番进度备忘录</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 引入 VT323 (经典终端点阵等宽), Orbitron, Share Tech Mono -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
 
     <style>
-        :root {
-            --bg-dark: #050508;
-            --neon-cyan: #00f3ff;
-            --neon-pink: #ec4899;
-            --neon-green: #00ff9d;
-            --neon-gray: #a0a0a0;
-            --card-bg: rgba(20, 20, 25, 0.6);
-            --header-h: 60px;
-            --filter-h: 50px;
-            --scroll-top: calc(var(--header-h) + var(--filter-h));
-        }
+      :root {
+        --bg-dark: #050508;
+        --neon-cyan: #00f3ff;
+        --neon-pink: #ec4899;
+        --neon-green: #00ff9d;
+        --neon-orange: #ff9900;
+        --neon-gray: #a0a0a0;
+        --card-bg: rgba(20, 20, 25, 0.6);
+        --header-h: 60px;
+        --filter-h: 50px;
+        --scroll-top: calc(var(--header-h) + var(--filter-h));
+      }
 
-        body {
-            background-color: var(--bg-dark);
-            color: #ccc;
-            font-family: 'JetBrains Mono', 'Noto Sans SC', monospace;
-            overflow: hidden; 
-            height: 100dvh;
-            width: 100vw;
-        }
+      body {
+        background-color: var(--bg-dark);
+        color: #ccc;
+        font-family: "JetBrains Mono", "Noto Sans SC", monospace;
+        overflow: hidden;
+        height: 100dvh;
+        width: 100vw;
+      }
 
-        /* --- 滚动容器 --- */
-        #scroll-viewport {
-            position: fixed; top: var(--scroll-top); left: 0; right: 0; bottom: 0;
-            overflow-y: auto; overflow-x: hidden;
-            padding-bottom: env(safe-area-inset-bottom);
-            scrollbar-width: thin; scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
-        }
-        #scroll-viewport::-webkit-scrollbar { width: 4px; }
-        #scroll-viewport::-webkit-scrollbar-track { background: transparent; }
-        #scroll-viewport::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.2); border-radius: 2px; transition: all 0.3s; }
-        #scroll-viewport::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+      /* --- 滚动容器 --- */
+      #scroll-viewport {
+        position: fixed;
+        top: var(--scroll-top);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: env(safe-area-inset-bottom);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
+      }
+      #scroll-viewport::-webkit-scrollbar {
+        width: 4px;
+      }
+      #scroll-viewport::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #scroll-viewport::-webkit-scrollbar-thumb {
+        background: rgba(0, 243, 255, 0.2);
+        border-radius: 2px;
+        transition: all 0.3s;
+      }
+      #scroll-viewport::-webkit-scrollbar-thumb:hover {
+        background: var(--neon-cyan);
+        box-shadow: 0 0 10px var(--neon-cyan);
+      }
 
-        /* --- 视差背景 --- */
-        #parallax-container {
-            position: fixed; top: -10% ; left: -10%; width: 120%; height: 120%;
-            z-index: -1; background-color: #020203;
-            transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1);
-            pointer-events: none; overflow: hidden;
+      /* --- 视差背景 --- */
+      #parallax-container {
+        position: fixed;
+        top: -10%;
+        left: -10%;
+        width: 120%;
+        height: 120%;
+        z-index: -1;
+        background-color: #020203;
+        transition: transform 0.08s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .bg-grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            rgba(0, 243, 255, 0.12) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(0, 243, 255, 0.12) 1px, transparent 1px);
+        background-size: 60px 60px;
+        animation: grid-scroll 20s linear infinite;
+        transform: perspective(500px) rotateX(20deg);
+        transform-origin: center top;
+        opacity: 0.6;
+      }
+      .bg-glow {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle at 20% 30%,
+            rgba(236, 72, 153, 0.25) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 80%,
+            rgba(0, 243, 255, 0.2) 0%,
+            transparent 50%
+          );
+        filter: blur(80px);
+        mix-blend-mode: screen;
+        opacity: 0.8;
+        z-index: 0;
+      }
+      .bg-particles {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(
+          rgba(255, 255, 255, 0.4) 1px,
+          transparent 1px
+        );
+        background-size: 80px 80px;
+        opacity: 0.4;
+        animation: particle-float 40s linear infinite;
+        z-index: 1;
+      }
+      @keyframes grid-scroll {
+        0% {
+          background-position: 0 0;
         }
-        .bg-grid {
-            position: absolute; inset: 0;
-            background-image: linear-gradient(rgba(0, 243, 255, 0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.12) 1px, transparent 1px);
-            background-size: 60px 60px; animation: grid-scroll 20s linear infinite;
-            transform: perspective(500px) rotateX(20deg); transform-origin: center top; opacity: 0.6;
+        100% {
+          background-position: 0 60px;
         }
-        .bg-glow {
-            position: absolute; inset: 0;
-            background: radial-gradient(circle at 20% 30%, rgba(236, 72, 153, 0.25) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(0, 243, 255, 0.2) 0%, transparent 50%);
-            filter: blur(80px); mix-blend-mode: screen; opacity: 0.8; z-index: 0;
+      }
+      @keyframes particle-float {
+        0% {
+          background-position: 0 0;
         }
-        .bg-particles {
-            position: absolute; inset: 0;
-            background-image: radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px);
-            background-size: 80px 80px; opacity: 0.4; animation: particle-float 40s linear infinite; z-index: 1;
+        100% {
+          background-position: 80px 80px;
         }
-        @keyframes grid-scroll { 0% { background-position: 0 0; } 100% { background-position: 0 60px; } }
-        @keyframes particle-float { 0% { background-position: 0 0; } 100% { background-position: 80px 80px; } }
+      }
 
-        .top-light {
-            position: fixed; top: 0; left: 0; right: 0; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--neon-cyan), var(--neon-pink), transparent);
-            z-index: 60; box-shadow: 0 0 20px var(--neon-cyan); animation: scan-light 4s linear infinite;
+      .top-light {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--neon-cyan),
+          var(--neon-pink),
+          transparent
+        );
+        z-index: 60;
+        box-shadow: 0 0 20px var(--neon-cyan);
+        animation: scan-light 4s linear infinite;
+      }
+      @keyframes scan-light {
+        0% {
+          transform: translateX(-100%);
         }
-        @keyframes scan-light { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-
-        .font-header { font-family: 'Orbitron', sans-serif; }
-
-        .glitch-text { position: relative; color: var(--neon-cyan); text-shadow: 0 0 10px rgba(0, 243, 255, 0.6); }
-        .glitch-text::before, .glitch-text::after { content: attr(data-text); position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; }
-        .glitch-text::before { left: 2px; text-shadow: -2px 0 var(--neon-pink); clip: rect(24px, 550px, 90px, 0); animation: glitch-anim-2 3s infinite linear alternate-reverse; }
-        .glitch-text::after { left: -2px; text-shadow: -2px 0 var(--neon-green); clip: rect(85px, 550px, 140px, 0); animation: glitch-anim 2.5s infinite linear alternate-reverse; }
-        @keyframes glitch-anim { 0% { clip: rect(10px, 9999px, 30px, 0); transform: skew(0.5deg); } 100% { clip: rect(80px, 9999px, 100px, 0); transform: skew(-0.5deg); } }
-        @keyframes glitch-anim-2 { 0% { clip: rect(60px, 9999px, 80px, 0); transform: skew(0.5deg); } 100% { clip: rect(10px, 9999px, 140px, 0); transform: skew(-0.5deg); } }
-
-        /* 卡片 */
-        .compact-card-wrapper { height: 54px; min-height: 54px; margin-bottom: 1px; perspective: 1000px; z-index: 1; position: relative; }
-        .compact-card {
-            background: var(--card-bg); border-bottom: 1px solid rgba(255,255,255,0.06); height: 100%; width: 100%; position: relative; overflow: visible;
-            -webkit-font-smoothing: antialiased; backface-visibility: hidden; transform: translateZ(0);
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s, border-color 0.3s, border-radius 0s;
-            --glow-color: var(--neon-cyan);
+        100% {
+          transform: translateX(100%);
         }
-        .card-inner-clip { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; display: flex; align-items: center; }
-        .compact-card-wrapper:hover { z-index: 100; }
-        .compact-card-wrapper:hover .compact-card {
-            background: rgba(35, 35, 40, 1); border: 1px solid var(--glow-color); border-radius: 6px;
-            transform: scale(1.06) translateY(-6px) translateZ(20px);
-            box-shadow: 0 20px 40px -5px rgba(0,0,0,0.8), 0 0 25px -5px var(--glow-color), inset 0 0 15px -10px var(--glow-color);
+      }
+
+      /* 字体定义 */
+      .font-header {
+        font-family: "Orbitron", sans-serif;
+      }
+      /* 使用 VT323 替代 DotGothic16 以获得更纯粹的像素等宽效果 */
+      .font-matrix {
+        font-family: "VT323", monospace;
+        font-weight: 400;
+      }
+      .font-lcd {
+        font-family: "Share Tech Mono", monospace;
+      }
+
+      .glitch-text {
+        position: relative;
+        color: var(--neon-cyan);
+        text-shadow: 0 0 10px rgba(0, 243, 255, 0.6);
+      }
+      .glitch-text::before,
+      .glitch-text::after {
+        content: attr(data-text);
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+      }
+      .glitch-text::before {
+        left: 2px;
+        text-shadow: -2px 0 var(--neon-pink);
+        clip: rect(24px, 550px, 90px, 0);
+        animation: glitch-anim-2 3s infinite linear alternate-reverse;
+      }
+      .glitch-text::after {
+        left: -2px;
+        text-shadow: -2px 0 var(--neon-green);
+        clip: rect(85px, 550px, 140px, 0);
+        animation: glitch-anim 2.5s infinite linear alternate-reverse;
+      }
+      @keyframes glitch-anim {
+        0% {
+          clip: rect(10px, 9999px, 30px, 0);
+          transform: skew(0.5deg);
         }
-        .scan-line { position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transform: skewX(-25deg); pointer-events: none; transition: none; }
-        .compact-card-wrapper:hover .scan-line { left: 200%; transition: left 0.6s ease-in-out; }
-        .status-bar { width: 3px; height: 100%; position: absolute; left: 0; top: 0; opacity: 0.8; transition: width 0.3s; background-color: var(--glow-color); }
-        .compact-card-wrapper:hover .status-bar { width: 6px; opacity: 1; box-shadow: 0 0 10px var(--glow-color); }
-
-        @keyframes subtle-pulse { 0%, 100% { opacity: 0.7; text-shadow: 0 0 0 transparent; } 50% { opacity: 1; text-shadow: 0 0 8px currentColor; } }
-        .text-pulse { animation: subtle-pulse 2.5s infinite ease-in-out; transform: translateZ(0); backface-visibility: hidden; will-change: opacity, text-shadow; }
-
-        /* 顶部栏 */
-        .app-header {
-            position: fixed; top: 0; left: 0; right: 0; height: var(--header-h); z-index: 50;
-            background: transparent; backdrop-filter: none; border: none;
-            display: flex; align-items: end; justify-content: space-between;
-            padding-bottom: 10px; pointer-events: none;
+        100% {
+          clip: rect(80px, 9999px, 100px, 0);
+          transform: skew(-0.5deg);
         }
-        .app-header > * { pointer-events: auto; }
-        .filter-bar { position: fixed; top: var(--header-h); left: 0; right: 0; height: var(--filter-h); z-index: 40; background: transparent; backdrop-filter: none; border: none; display: flex; align-items: center; }
-        .month-header { position: sticky; top: 0; z-index: 30; background: transparent; backdrop-filter: blur(5px); border-bottom: 1px solid var(--neon-cyan); border-top: none; box-shadow: none; margin-top: 0; }
-
-        /* 弹窗与输入 */
-        @keyframes holographic-pop { 
-            0% { transform: scale(0.8) perspective(500px) rotateX(20deg); opacity: 0; } 
-            60% { transform: scale(1.05) perspective(500px) rotateX(-5deg); opacity: 1; }
-            100% { transform: scale(1) perspective(500px) rotateX(0deg); opacity: 1; } 
+      }
+      @keyframes glitch-anim-2 {
+        0% {
+          clip: rect(60px, 9999px, 80px, 0);
+          transform: skew(0.5deg);
         }
-        .modal-enter { animation: holographic-pop 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards; background-image: linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px); background-size: 20px 20px; }
-
-        .neon-btn { position: relative; overflow: hidden; transition: all 0.3s; }
-        .neon-btn:hover { box-shadow: 0 0 25px currentColor, inset 0 0 10px currentColor; text-shadow: 0 0 8px currentColor; border-color: transparent; transform: scale(1.05); }
-        .neon-btn::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: conic-gradient(transparent, currentColor, transparent 30%); animation: rotate-border 4s linear infinite; opacity: 0; }
-        .neon-btn:hover::before { opacity: 0.2; }
-        @keyframes rotate-border { 100% { transform: rotate(360deg); } }
-
-        /* 通用输入框样式 */
-        input, textarea { 
-            font-size: 16px !important; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: white; font-family: 'JetBrains Mono', monospace; transition: all 0.3s;
+        100% {
+          clip: rect(10px, 9999px, 140px, 0);
+          transform: skew(-0.5deg);
         }
-        input:focus, textarea:focus { border-color: var(--neon-cyan); background: rgba(0, 243, 255, 0.05); box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) inset; outline: none; letter-spacing: 1px; }
+      }
 
-        /* 自定义下拉框动画 */
-        @keyframes dropdown-enter {
-            from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+      /* 卡片 */
+      .compact-card-wrapper {
+        height: 54px;
+        min-height: 54px;
+        margin-bottom: 1px;
+        perspective: 1000px;
+        z-index: 1;
+        position: relative;
+      }
+      .compact-card {
+        background: var(--card-bg);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        height: 100%;
+        width: 100%;
+        position: relative;
+        overflow: visible;
+        -webkit-font-smoothing: antialiased;
+        backface-visibility: hidden;
+        transform: translateZ(0);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+          box-shadow 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s,
+          border-color 0.3s, border-radius 0s;
+        --glow-color: var(--neon-cyan);
+      }
+      .card-inner-clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        border-radius: inherit;
+        display: flex;
+        align-items: center;
+      }
+      .compact-card-wrapper:hover {
+        z-index: 100;
+      }
+      .compact-card-wrapper:hover .compact-card {
+        background: rgba(35, 35, 40, 1);
+        border: 1px solid var(--glow-color);
+        border-radius: 6px;
+        transform: scale(1.06) translateY(-6px) translateZ(20px);
+        box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.8),
+          0 0 25px -5px var(--glow-color),
+          inset 0 0 15px -10px var(--glow-color);
+      }
+      .compact-card.selected {
+        background: rgba(255, 153, 0, 0.08);
+        border-color: var(--neon-orange);
+        box-shadow: inset 0 0 15px rgba(255, 153, 0, 0.1);
+      }
+      .compact-card.selected .status-bar {
+        background-color: var(--neon-orange) !important;
+        width: 5px;
+        box-shadow: 0 0 12px var(--neon-orange);
+      }
+
+      .scan-line {
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        transform: skewX(-25deg);
+        pointer-events: none;
+        transition: none;
+      }
+      .compact-card-wrapper:hover .scan-line {
+        left: 200%;
+        transition: left 0.6s ease-in-out;
+      }
+      .status-bar {
+        width: 3px;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0.8;
+        transition: width 0.3s;
+        background-color: var(--glow-color);
+      }
+      .compact-card-wrapper:hover .status-bar {
+        width: 6px;
+        opacity: 1;
+        box-shadow: 0 0 10px var(--glow-color);
+      }
+
+      @keyframes subtle-pulse {
+        0%,
+        100% {
+          opacity: 0.5;
+          text-shadow: 0 0 12px currentColor;
         }
-        .dropdown-anim { animation: dropdown-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        50% {
+          opacity: 1;
+          text-shadow: 0 0 12px currentColor;
+        }
+      }
+      /* V12.11: 统一呼吸动画，确保所有呼吸元素使用相同的 animation */
+      /* 您可以在这里调整 duration (例如 2.5s) 来改变 COMPLETE 和 EP 的呼吸速度 */
+      .text-pulse {
+        animation: subtle-pulse 3s infinite ease-in-out;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        will-change: opacity, text-shadow;
+      }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .toast-enter { animation: slideDown 0.3s ease-out forwards; }
-        @keyframes slideDown { from { transform: translate(-50%, -100%); opacity: 0; } to { transform: translate(-50%, 20px); opacity: 1; } }
-        .fab-action { transform: translateY(20px) scale(0.8); opacity: 0; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none; }
-        .group:hover .fab-action { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+      /* 顶部栏 */
+      .app-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--header-h);
+        z-index: 50;
+        background: transparent;
+        backdrop-filter: none;
+        border: none;
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        padding-bottom: 10px;
+        pointer-events: none;
+      }
+      .app-header > * {
+        pointer-events: auto;
+      }
+      .filter-bar {
+        position: fixed;
+        top: var(--header-h);
+        left: 0;
+        right: 0;
+        height: var(--filter-h);
+        z-index: 40;
+        background: transparent;
+        backdrop-filter: none;
+        border: none;
+        display: flex;
+        align-items: center;
+      }
+      .month-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: transparent;
+        backdrop-filter: blur(5px);
+        border-bottom: 1px solid var(--neon-cyan);
+        border-top: none;
+        box-shadow: none;
+        margin-top: 0;
+      }
+
+      @keyframes holographic-pop {
+        0% {
+          transform: scale(0.8) perspective(500px) rotateX(20deg);
+          opacity: 0;
+        }
+        60% {
+          transform: scale(1.05) perspective(500px) rotateX(-5deg);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(1) perspective(500px) rotateX(0deg);
+          opacity: 1;
+        }
+      }
+      .modal-enter {
+        animation: holographic-pop 0.4s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+        background-image: linear-gradient(
+            rgba(0, 243, 255, 0.05) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+
+      .neon-btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+      }
+      .neon-btn:hover {
+        box-shadow: 0 0 25px currentColor, inset 0 0 10px currentColor;
+        text-shadow: 0 0 8px currentColor;
+        border-color: transparent;
+        transform: scale(1.05);
+      }
+      .neon-btn:active {
+        transform: scale(0.95);
+      }
+      .neon-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .neon-btn::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: conic-gradient(transparent, currentColor, transparent 30%);
+        animation: rotate-border 4s linear infinite;
+        opacity: 0;
+      }
+      .neon-btn:hover::before {
+        opacity: 0.2;
+      }
+      @keyframes rotate-border {
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* 通用输入框样式 */
+      input,
+      textarea {
+        font-size: 16px !important;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        font-family: "JetBrains Mono", monospace;
+        transition: all 0.3s;
+      }
+      input:focus,
+      textarea:focus {
+        border-color: var(--neon-cyan);
+        background: rgba(0, 243, 255, 0.05);
+        box-shadow: 0 0 20px rgba(0, 243, 255, 0.2) inset;
+        outline: none;
+        letter-spacing: 1px;
+      }
+
+      /* 自定义下拉框动画 */
+      @keyframes dropdown-enter {
+        from {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      .dropdown-anim {
+        animation: dropdown-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .toast-enter {
+        animation: slideDown 0.3s ease-out forwards;
+      }
+      @keyframes slideDown {
+        from {
+          transform: translate(-50%, -100%);
+          opacity: 0;
+        }
+        to {
+          transform: translate(-50%, 20px);
+          opacity: 1;
+        }
+      }
+      .fab-action {
+        transform: translateY(20px) scale(0.8);
+        opacity: 0;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+      }
+      .group:hover .fab-action {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .batch-btn-enter {
+        animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+      @keyframes popIn {
+        from {
+          transform: scale(0) rotate(-45deg);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1) rotate(0);
+          opacity: 1;
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
+      const { useState, useEffect, useMemo, useRef } = React;
 
-        const Icons = {
-            Plus: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
-            X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>,
-            Play: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3l14 9-14 9V3z"/></svg>,
-            Check: () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>,
-            Circle: () => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10"/></svg>,
-            Trash: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>,
-            Share: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>,
-            Download: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-            ChevronDown: () => <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" className="text-gray-500"><path d="M1 1L5 5L9 1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      const Icons = {
+        Plus: () => (
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        ),
+        X: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        ),
+        Play: () => (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5 3l14 9-14 9V3z" />
+          </svg>
+        ),
+        Check: () => (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        ),
+        CheckSquare: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ),
+        CheckDouble: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M2 12h10" />
+            <path d="M2 6h10" />
+            <path d="M2 18h10" />
+            <path d="M16 6l4 4-4 4" />
+          </svg>
+        ),
+        Circle: () => (
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+          >
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        ),
+        Trash: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+          </svg>
+        ),
+        Share: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        ),
+        Download: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        ),
+        ChevronDown: () => (
+          <svg
+            width="10"
+            height="6"
+            viewBox="0 0 10 6"
+            fill="none"
+            stroke="currentColor"
+            className="text-gray-500"
+          >
+            <path
+              d="M1 1L5 5L9 1"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        ),
+        Undo: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M3 7v6h6" />
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+          </svg>
+        ),
+        Redo: () => (
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M21 7v6h-6" />
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+          </svg>
+        ),
+        Alert: () => (
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        ),
+      };
+
+      const STATUS = {
+        TODO: "UNWATCHED",
+        DOING: "WATCHING",
+        DONE: "COMPLETED",
+      };
+
+      const safeStorage = {
+        get: (k) => {
+          try {
+            return JSON.parse(localStorage.getItem(k) || "[]");
+          } catch {
+            return [];
+          }
+        },
+        set: (k, v) => {
+          try {
+            localStorage.setItem(k, JSON.stringify(v));
+          } catch {}
+        },
+      };
+
+      const Toast = ({ message, onClose }) => {
+        useEffect(() => {
+          const timer = setTimeout(onClose, 3000);
+          return () => clearTimeout(timer);
+        }, [onClose]);
+        return (
+          <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] toast-enter">
+            <div className="bg-[#0f0f13] border border-cyan-500/50 text-cyan-400 px-6 py-3 rounded-full shadow-[0_0_20px_rgba(0,243,255,0.3)] flex items-center gap-2 font-mono text-xs tracking-wider">
+              <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>
+              {message}
+            </div>
+          </div>
+        );
+      };
+
+      const ConfirmModal = ({ isOpen, onClose, onConfirm, message }) => {
+        if (!isOpen) return null;
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-[5px] p-6">
+            <div className="modal-enter w-full max-w-xs bg-[#0f0f13] border border-red-500/50 rounded-xl p-6 shadow-[0_0_40px_rgba(239,68,68,0.2)] text-center">
+              <div className="text-red-500 mb-4 flex justify-center">
+                <Icons.Alert />
+              </div>
+              <h3 className="text-white font-header text-sm tracking-widest mb-6">
+                {message}
+              </h3>
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-2 rounded-lg border border-gray-600 text-gray-400 hover:bg-white/5 transition-colors text-xs font-bold font-mono"
+                >
+                  CANCEL
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex-1 py-2 rounded-lg bg-red-600 text-white hover:bg-red-500 shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all text-xs font-bold font-mono"
+                >
+                  CONFIRM
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const RowItem = ({
+        item,
+        onClick,
+        delayIndex,
+        isSelectMode,
+        isSelected,
+        onSelect,
+      }) => {
+        const config = {
+          [STATUS.TODO]: {
+            glowColor: "#a0a0a0",
+            textColor: "text-gray-400 group-hover:text-white",
+            labelColor: "text-gray-500 group-hover:text-gray-300",
+            label: "WAITING",
+            icon: <Icons.Circle />,
+          },
+          [STATUS.DOING]: {
+            glowColor: "#ec4899",
+            textColor: "text-pink-400 group-hover:text-pink-300",
+            labelColor: "text-pink-500 group-hover:text-pink-300",
+            label: "SYNCING",
+            icon: <Icons.Play />,
+          },
+          [STATUS.DONE]: {
+            glowColor: "#00ff9d",
+            textColor:
+              "text-[#00ff9d]/70 line-through decoration-[#00ff9d]/50 group-hover:text-[#00ff9d]",
+            labelColor: "text-green-500 group-hover:text-green-300",
+            label: "COMPLETE",
+            icon: <Icons.Check />,
+          },
+        };
+        const style = config[item.status] || config[STATUS.TODO];
+        const isDoing = item.status === STATUS.DOING;
+        const isComplete = item.status === STATUS.DONE;
+        const isTodo = item.status === STATUS.TODO;
+
+        const handleClick = () => {
+          if (isSelectMode) {
+            onSelect(item.id);
+          } else {
+            onClick(item);
+          }
         };
 
-        const STATUS = { TODO: 'UNWATCHED', DOING: 'WATCHING', DONE: 'COMPLETED' };
-        
-        const safeStorage = {
-            get: (k) => { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; } },
-            set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
-        };
-
-        const Toast = ({ message, onClose }) => {
-            useEffect(() => { const timer = setTimeout(onClose, 3000); return () => clearTimeout(timer); }, [onClose]);
-            return (
-                <div className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] toast-enter">
-                    <div className="bg-[#0f0f13] border border-cyan-500/50 text-cyan-400 px-6 py-3 rounded-full shadow-[0_0_20px_rgba(0,243,255,0.3)] flex items-center gap-2 font-mono text-xs tracking-wider">
-                        <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></span>{message}
-                    </div>
-                </div>
-            );
-        };
-
-        const RowItem = ({ item, onClick, delayIndex }) => {
-            const config = {
-                [STATUS.TODO]: { glowColor: '#a0a0a0', textColor: 'text-gray-400 group-hover:text-white', labelColor: 'text-gray-500 group-hover:text-gray-300', label: 'WAITING', icon: <Icons.Circle /> },
-                [STATUS.DOING]: { glowColor: '#ec4899', textColor: 'text-pink-400 group-hover:text-pink-300', labelColor: 'text-pink-500 group-hover:text-pink-300', label: 'SYNCING', icon: <Icons.Play /> },
-                [STATUS.DONE]: { glowColor: '#00ff9d', textColor: 'text-gray-500 line-through decoration-gray-600 group-hover:text-gray-400', labelColor: 'text-green-500 group-hover:text-green-300', label: 'COMPLETE', icon: <Icons.Check /> }
-            };
-            const style = config[item.status] || config[STATUS.TODO];
-            const isDoing = item.status === STATUS.DOING;
-
-            return (
-                <div className="compact-card-wrapper group cursor-pointer" onClick={() => onClick(item)} style={{ animationDelay: `${delayIndex * 0.05}s` }}>
-                    <div className="compact-card" style={{ '--glow-color': style.glowColor }}>
-                        <div className="card-inner-clip pl-3 pr-4">
-                            <div className="scan-line"></div>
-                            <div className="status-bar"></div>
-                            <div className="flex-1 min-w-0 flex items-center gap-3 relative z-10">
-                                <div className={`w-4 flex justify-center shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_currentColor] ${style.labelColor}`}>{style.icon}</div>
-                                <div className="flex flex-col justify-center h-full pt-1">
-                                    <span className={`text-[9px] font-header tracking-widest leading-none mb-0.5 transition-colors duration-300 ${isDoing ? 'text-pulse' : ''} ${style.labelColor}`}>{style.label}</span>
-                                    <span className={`font-bold truncate text-[14px] leading-tight transition-colors duration-300 ${style.textColor} group-hover:tracking-wide`}>{item.name}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 pl-2 text-right shrink-0 relative z-10">
-                                {item.ep && (
-                                    <div className="bg-white/5 group-hover:bg-opacity-20 px-1.5 py-[2px] rounded font-mono text-xs tracking-tight border border-white/5 min-w-[36px] text-center transition-all duration-300" style={{ color: style.glowColor, borderColor: 'rgba(255,255,255,0.1)' }}>
-                                        <span className="text-[8px] opacity-60 mr-0.5">EP</span>{item.ep}
-                                    </div>
-                                )}
-                                {item.time && <div className="text-gray-500 group-hover:text-white font-mono text-[11px] w-[38px] text-right tracking-tight transition-colors duration-300">{item.time}</div>}
-                                {!item.ep && !item.time && <div className="w-2"></div>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- Custom Select Component (Updated Background & Padding) ---
-        const CustomSelect = ({ value, onChange, options }) => {
-            const [isOpen, setIsOpen] = useState(false);
-            const containerRef = useRef(null);
-
-            useEffect(() => {
-                const handleClickOutside = (event) => {
-                    if (containerRef.current && !containerRef.current.contains(event.target)) {
-                        setIsOpen(false);
-                    }
-                };
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
-
-            const selectedOption = options.find(o => o.value === value) || options[0];
-
-            return (
-                <div className="relative" ref={containerRef}>
-                    <div 
-                        onClick={() => setIsOpen(!isOpen)}
-                        className={`w-full p-2.5 rounded-xl bg-zinc-900 border text-sm font-mono text-center cursor-pointer transition-all duration-300 flex items-center justify-center relative ${isOpen ? 'border-cyan-500 shadow-[0_0_15px_rgba(0,243,255,0.2)]' : 'border-white/10 hover:border-cyan-500/50'}`}
-                    >
-                        <span className={`${selectedOption.colorClass} font-bold tracking-wider`}>{selectedOption.label}</span>
-                        <div className={`absolute right-3 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
-                            <Icons.ChevronDown />
-                        </div>
-                    </div>
-
-                    {isOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden z-[150] shadow-2xl dropdown-anim">
-                            {options.map((opt) => (
-                                <div
-                                    key={opt.value}
-                                    onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                                    className={`py-2 text-center text-sm font-mono cursor-pointer transition-colors hover:bg-white/10 ${opt.colorClass} ${value === opt.value ? 'bg-white/5' : ''}`}
-                                >
-                                    {opt.label}
-                                </div>
-                            ))}
-                        </div>
+        return (
+          <div
+            className="compact-card-wrapper group cursor-pointer"
+            onClick={handleClick}
+            style={{ animationDelay: `${delayIndex * 0.05}s` }}
+          >
+            <div
+              className={`compact-card ${isSelected ? "selected" : ""}`}
+              style={{ "--glow-color": style.glowColor }}
+            >
+              <div className="card-inner-clip pl-3 pr-4">
+                <div className="scan-line"></div>
+                <div className="status-bar"></div>
+                <div className="flex-1 min-w-0 flex items-center gap-3 relative z-10">
+                  <div
+                    className={`w-4 flex justify-center shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:drop-shadow-[0_0_5px_currentColor] ${style.labelColor}`}
+                  >
+                    {isSelectMode && isSelected ? (
+                      <span className="text-neon-orange">
+                        <Icons.CheckSquare />
+                      </span>
+                    ) : (
+                      style.icon
                     )}
+                  </div>
+                  <div className="flex flex-col justify-center h-full pt-1">
+                    <span
+                      className={`text-[9px] font-header tracking-widest leading-none mb-0.5 transition-colors duration-300 ${
+                        isDoing || isComplete ? "text-pulse" : ""
+                      } ${style.labelColor}`}
+                    >
+                      {style.label}
+                    </span>
+                    <span
+                      className={`font-bold truncate text-[14px] leading-tight transition-colors duration-300 ${style.textColor} group-hover:tracking-wide`}
+                    >
+                      {item.name}
+                    </span>
+                  </div>
                 </div>
-            );
-        };
 
-        const EditModal = ({ isOpen, onClose, item, onSave, onDelete }) => {
-            const [form, setForm] = useState({ name: '', date: '', ep: '', time: '', status: STATUS.TODO });
-            useEffect(() => { if (isOpen) setForm(item || { name: '', date: '', ep: '', time: '', status: STATUS.TODO }); }, [isOpen, item]);
-            
-            const parseDate = () => {
-                let v = form.date.replace(/[^\d]/g, ''); 
-                if (v.length === 4) setForm(f => ({...f, date: v.substring(0,2) + '.' + v.substring(2)}));
-                else if (v.length === 6) setForm(f => ({...f, date: v.substring(0,4) + '.' + v.substring(4)}));
-            };
-            const parseEp = () => { let v = form.ep.trim(); if (/^\d$/.test(v)) setForm(f => ({...f, ep: '0' + v})); };
-            const parseTime = () => {
-                let v = form.time.replace(/[^\d]/g, '');
-                if (v.length === 4) setForm(f => ({...f, time: v.substring(0,2) + ':' + v.substring(2)}));
-                else if (v.length === 3) setForm(f => ({...f, time: '0' + v.substring(0,1) + ':' + v.substring(1)}));
-            };
-
-            const statusOptions = [
-                { value: STATUS.TODO, label: 'WAITING', colorClass: 'text-gray-400' },
-                { value: STATUS.DOING, label: 'SYNCING', colorClass: 'text-pink-400' },
-                { value: STATUS.DONE, label: 'COMPLETE', colorClass: 'text-green-400' }
-            ];
-
-            if (!isOpen) return null;
-            return (
-                // 毛玻璃遮罩层 V11.14: bg-black/10 + backdrop-blur-[10px]
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
-                    <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-visible group">
-                        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px] rounded-2xl overflow-hidden"></div>
-                        <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
-                            <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_#0ff]"></span>{item ? 'EDIT_PROTOCOL' : 'INIT_PROTOCOL'}</h3>
-                            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"><Icons.X /></button>
-                        </div>
-                        <div className="space-y-5 relative z-10">
-                            <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">TARGET_NAME</label><input value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full text-lg p-3 rounded-xl bg-black/40 text-white font-bold placeholder-gray-700 focus:text-cyan-300" placeholder="Input Name..." autoFocus /></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">DATE_LOG</label><input value={form.date} onChange={e => setForm({...form, date: e.target.value})} onBlur={parseDate} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700" placeholder="25.01" /></div>
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">STATUS</label>
-                                    <CustomSelect value={form.status} onChange={(val) => setForm({...form, status: val})} options={statusOptions} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">EPISODE</label><input value={form.ep} onChange={e => setForm({...form, ep: e.target.value})} onBlur={parseEp} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-cyan-400 focus:text-cyan-300 placeholder-gray-700" placeholder="01" /></div>
-                                <div className="group/input"><label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">TIMESTAMP</label><input value={form.time} onChange={e => setForm({...form, time: e.target.value})} onBlur={parseTime} className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-pink-400 focus:text-pink-300 placeholder-gray-700" placeholder="00:00" /></div>
-                            </div>
-                        </div>
-                        <div className="mt-8 flex gap-3 relative z-10">
-                            {item && <button onClick={() => { onDelete(item.id); onClose(); }} className="p-3 text-red-500 bg-red-900/10 rounded-xl border border-red-900/30 hover:bg-red-900/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all neon-btn"><Icons.Trash /></button>}
-                            <button onClick={() => { if(form.name) { onSave({...form, id: item ? item.id : Date.now()}); onClose(); } }} className="neon-btn flex-1 bg-cyan-600/20 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm relative z-10">EXECUTE_COMMAND</button>
-                        </div>
+                {/* Right Side Content */}
+                <div className="flex items-center gap-2 pl-2 text-right shrink-0 relative z-10">
+                  {isComplete ? (
+                    <div
+                      className="font-matrix text-2xl tracking-[0.2em] text-pulse"
+                      style={{
+                        color: "var(--neon-green)",
+                        textShadow: "0 0 10px var(--neon-green)",
+                      }}
+                    >
+                      COMPLETE
                     </div>
-                </div>
-            );
-        };
-
-        const ImportModal = ({ isOpen, onClose, onImport }) => {
-            const [code, setCode] = useState('');
-            if (!isOpen) return null;
-            return (
-                // 同样应用毛玻璃效果
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
-                    <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-hidden group">
-                        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px]"></div>
-                        <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
-                            <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#0f0]"></span>PASTE_NEURAL_CODE</h3>
-                            <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"><Icons.X /></button>
+                  ) : isTodo ? (
+                    <div className="w-2"></div>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-end gap-0 w-24">
+                        <span className="text-pink-500 font-header text-[11px] mb-0">
+                          ep.
+                        </span>
+                        <div
+                          className="font-matrix text-3xl tracking-tighter tabular-nums text-center min-w-[30px] text-pulse"
+                          style={{
+                            color: style.glowColor,
+                            textShadow: `0 0 10px ${style.glowColor}`,
+                          }}
+                        >
+                          {item.ep}
                         </div>
-                        <div className="relative z-10"><textarea value={code} onChange={e => setCode(e.target.value)} className="w-full h-32 p-3 rounded-xl bg-black/40 text-xs font-mono text-green-400 placeholder-gray-700 focus:shadow-[0_0_15px_rgba(0,255,157,0.2)] resize-none" placeholder="PASTE ENCRYPTED STRING HERE..." /></div>
-                        <div className="mt-4 flex gap-3 relative z-10"><button onClick={() => { if(code) { onImport(code); onClose(); } }} className="neon-btn flex-1 bg-green-600/20 border border-green-500 text-green-400 hover:bg-green-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm">DECRYPT & SYNC</button></div>
-                    </div>
+                      </div>
+
+                      {item.time && (
+                        <div
+                          className="text-gray-500 group-hover:text-white font-lcd text-[14px] tracking-widest text-right transition-colors duration-300 w-[42px]"
+                          style={{ textShadow: "0 0 3px currentColor" }}
+                        >
+                          {item.time}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {!item.ep && !item.time && !isComplete && !isTodo && (
+                    <div className="w-2"></div>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      const CustomSelect = ({ value, onChange, options }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const containerRef = useRef(null);
+        useEffect(() => {
+          const handleClickOutside = (event) => {
+            if (
+              containerRef.current &&
+              !containerRef.current.contains(event.target)
+            )
+              setIsOpen(false);
+          };
+          document.addEventListener("mousedown", handleClickOutside);
+          return () =>
+            document.removeEventListener("mousedown", handleClickOutside);
+        }, []);
+        const selectedOption =
+          options.find((o) => o.value === value) || options[0];
+        return (
+          <div className="relative z-50" ref={containerRef}>
+            <div
+              onClick={() => setIsOpen(!isOpen)}
+              className={`w-full p-2.5 rounded-xl bg-zinc-900 border text-sm font-mono text-center cursor-pointer transition-all duration-300 flex items-center justify-center relative ${
+                isOpen
+                  ? "border-cyan-500 shadow-[0_0_15px_rgba(0,243,255,0.2)]"
+                  : "border-white/10 hover:border-cyan-500/50"
+              }`}
+            >
+              <span
+                className={`${selectedOption.colorClass} font-bold tracking-wider`}
+              >
+                {selectedOption.label}
+              </span>
+              <div
+                className={`absolute right-3 transition-transform duration-300 ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              >
+                <Icons.ChevronDown />
+              </div>
+            </div>
+            {isOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden z-[200] shadow-2xl dropdown-anim">
+                {options.map((opt) => (
+                  <div
+                    key={opt.value}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`py-2 text-center text-sm font-mono cursor-pointer transition-colors hover:bg-white/10 ${
+                      opt.colorClass
+                    } ${value === opt.value ? "bg-white/5" : ""}`}
+                  >
+                    {opt.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      const EditModal = ({ isOpen, onClose, item, onSave, onDelete }) => {
+        const [form, setForm] = useState({
+          name: "",
+          date: "",
+          ep: "",
+          time: "",
+          status: STATUS.TODO,
+        });
+        useEffect(() => {
+          if (isOpen)
+            setForm(
+              item || {
+                name: "",
+                date: "",
+                ep: "",
+                time: "",
+                status: STATUS.TODO,
+              }
             );
+        }, [isOpen, item]);
+
+        const parseDate = () => {
+          let v = form.date.replace(/[^\d]/g, "");
+          if (v.length === 4)
+            setForm((f) => ({
+              ...f,
+              date: v.substring(0, 2) + "." + v.substring(2),
+            }));
+          else if (v.length === 6)
+            setForm((f) => ({
+              ...f,
+              date:
+                v.substring(0, 2) +
+                "." +
+                v.substring(2, 4) +
+                "." +
+                v.substring(4),
+            }));
+        };
+        const parseEp = () => {
+          let v = form.ep.trim();
+          if (/^\d$/.test(v)) setForm((f) => ({ ...f, ep: "0" + v }));
+        };
+        const parseTime = () => {
+          let v = form.time.replace(/[^\d]/g, "");
+          if (v.length === 4)
+            setForm((f) => ({
+              ...f,
+              time: v.substring(0, 2) + ":" + v.substring(2),
+            }));
+          else if (v.length === 3)
+            setForm((f) => ({
+              ...f,
+              time: "0" + v.substring(0, 1) + ":" + v.substring(1),
+            }));
         };
 
-        const App = () => {
-            const [items, setItems] = useState([]);
-            // V11.7: Initialize with ALL 3 filters selected (effectively ALL)
-            const [activeFilters, setActiveFilters] = useState(['TODO', 'DOING', 'DONE']); 
-            const [isModalOpen, setIsModalOpen] = useState(false);
-            const [isImportOpen, setIsImportOpen] = useState(false);
-            const [editingItem, setEditingItem] = useState(null);
-            const [toast, setToast] = useState(null);
+        const handleStatusChange = (val) => {
+          if (val === STATUS.DONE || val === STATUS.TODO) {
+            setForm({ ...form, status: val, ep: "", time: "" });
+          } else {
+            setForm({ ...form, status: val });
+          }
+        };
 
-            useEffect(() => {
-                const bg = document.getElementById('parallax-container');
-                if (!bg) return;
-                const handleMouseMove = (e) => {
-                    const x = (window.innerWidth - e.pageX) / 25; 
-                    const y = (window.innerHeight - e.pageY) / 25;
-                    bg.style.transform = `translate(${x}px, ${y}px)`;
-                };
-                window.addEventListener('mousemove', handleMouseMove);
-                return () => window.removeEventListener('mousemove', handleMouseMove);
-            }, []);
+        const statusOptions = [
+          { value: STATUS.TODO, label: "WAITING", colorClass: "text-gray-400" },
+          {
+            value: STATUS.DOING,
+            label: "SYNCING",
+            colorClass: "text-pink-400",
+          },
+          {
+            value: STATUS.DONE,
+            label: "COMPLETE",
+            colorClass: "text-green-400",
+          },
+        ];
 
-            useEffect(() => { setItems(safeStorage.get('cyber_deck_tactical')); }, []);
-            useEffect(() => { if(items.length > 0 || safeStorage.get('cyber_deck_tactical').length > 0) safeStorage.set('cyber_deck_tactical', items); }, [items]);
+        const hideInputs =
+          form.status === STATUS.DONE || form.status === STATUS.TODO;
 
-            const handleSave = (item) => {
-                setItems(prev => {
-                    const idx = prev.findIndex(i => i.id === item.id);
-                    if(idx > -1) { const n = [...prev]; n[idx] = item; return n; }
-                    return [item, ...prev];
-                });
-            };
-            const handleDelete = (id) => setItems(prev => prev.filter(i => i.id !== id));
-            const openNew = () => { setEditingItem(null); setIsModalOpen(true); };
-            const openEdit = (item) => { setEditingItem(item); setIsModalOpen(true); };
+        if (!isOpen) return null;
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
+            <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-visible group">
+              <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px] rounded-2xl overflow-hidden"></div>
+              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
+                <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_10px_#0ff]"></span>
+                  {item ? "EDIT_PROTOCOL" : "INIT_PROTOCOL"}
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+              <div className="space-y-5 relative z-10">
+                <div className="group/input">
+                  <label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">
+                    TARGET_NAME
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    className="w-full text-lg p-3 rounded-xl bg-black/40 text-white font-bold placeholder-gray-700 focus:text-cyan-300"
+                    placeholder="Input Name..."
+                    autoFocus
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="group/input">
+                    <label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">
+                      DATE_LOG
+                    </label>
+                    <input
+                      value={form.date}
+                      onChange={(e) =>
+                        setForm({ ...form, date: e.target.value })
+                      }
+                      onBlur={parseDate}
+                      className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700"
+                      placeholder="25.04.10"
+                    />
+                  </div>
+                  <div className="group/input relative z-50">
+                    <label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors">
+                      STATUS
+                    </label>
+                    <CustomSelect
+                      value={form.status}
+                      onChange={handleStatusChange}
+                      options={statusOptions}
+                    />
+                  </div>
+                </div>
 
-            const handleExport = () => {
-                try {
-                    const miniData = items.map(i => {
-                        let s = 0; if (i.status === 'WATCHING') s = 1; if (i.status === 'COMPLETED') s = 2;
-                        return [i.id, i.name, i.date, i.ep, i.time, s];
-                    });
-                    const jsonStr = JSON.stringify(miniData);
-                    const compressed = LZString.compressToEncodedURIComponent(jsonStr);
-                    const textArea = document.createElement("textarea");
-                    textArea.value = compressed;
-                    textArea.style.position = "fixed"; textArea.style.left = "-9999px"; textArea.style.top = "0";
-                    document.body.appendChild(textArea);
-                    textArea.focus(); textArea.select();
-                    try {
-                        if (document.execCommand('copy')) setToast("LZ-COMPRESSED CODE COPIED");
-                        else setToast("EXPORT FAILED: PERMISSION DENIED");
-                    } catch (err) { setToast("EXPORT FAILED"); console.error('Copy failed', err); }
-                    document.body.removeChild(textArea);
-                } catch(e) { setToast("EXPORT FAILED"); console.error(e); }
-            };
-
-            const handleImport = (code) => {
-                try {
-                    const jsonStr = LZString.decompressFromEncodedURIComponent(code);
-                    if (!jsonStr) throw new Error("Decompression Failed");
-                    const parsedData = JSON.parse(jsonStr);
-                    if (Array.isArray(parsedData)) {
-                        setItems(prev => {
-                            const newItems = parsedData.map(item => {
-                                return { id: item[0], name: item[1], date: item[2], ep: item[3], time: item[4], status: item[5] === 1 ? 'WATCHING' : (item[5] === 2 ? 'COMPLETED' : 'UNWATCHED') };
-                            });
-                            const mergedMap = new Map(prev.map(i => [i.id, i]));
-                            newItems.forEach(i => mergedMap.set(i.id, i));
-                            return Array.from(mergedMap.values());
-                        });
-                        setToast("NEURAL SYNC COMPLETE");
-                    } else throw new Error();
-                } catch (e) { setToast("SYNC ERROR: INVALID CODE"); console.error(e); }
-            };
-
-            const toggleFilter = (key) => {
-                if (key === 'ALL') {
-                    setActiveFilters(['TODO', 'DOING', 'DONE']);
-                    return;
-                }
-                const isAllSelected = activeFilters.length === 3;
-                if (isAllSelected) {
-                    setActiveFilters([key]);
-                } else {
-                    if (activeFilters.includes(key)) {
-                        const next = activeFilters.filter(f => f !== key);
-                        setActiveFilters(next.length === 0 ? ['TODO', 'DOING', 'DONE'] : next);
-                    } else {
-                        setActiveFilters([...activeFilters, key]);
-                    }
-                }
-            };
-
-            const isAll = activeFilters.length === 3;
-
-            const groupedList = useMemo(() => {
-                const groups = {};
-                const filteredItems = items.filter(i => {
-                    const key = Object.keys(STATUS).find(k => STATUS[k] === i.status);
-                    return activeFilters.includes(key);
-                });
-
-                filteredItems.forEach(item => {
-                    let key = "MISC_FILE"; let displayTitle = "MISC // ARCHIVE";
-                    if (item.date) {
-                        if (!item.date.includes('0/0') && !item.date.includes('0-0')) {
-                            const clean = item.date.replace(/[\/\.]/g, '-');
-                            const parts = clean.split('-');
-                            if (parts.length >= 2) { key = `${parts[0]}-${parts[1]}`; displayTitle = `LOG // ${parts[0]}.${parts[1]}`; }
+                {!hideInputs && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="group/input">
+                      <label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">
+                        EPISODE
+                      </label>
+                      <input
+                        value={form.ep}
+                        onChange={(e) =>
+                          setForm({ ...form, ep: e.target.value })
                         }
+                        onBlur={parseEp}
+                        className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-cyan-400 focus:text-cyan-300 placeholder-gray-700"
+                        placeholder="01"
+                      />
+                    </div>
+                    <div className="group/input">
+                      <label className="text-[10px] text-gray-500 font-mono mb-1.5 block group-focus-within/input:text-cyan-400 transition-colors text-center">
+                        TIMESTAMP
+                      </label>
+                      <input
+                        value={form.time}
+                        onChange={(e) =>
+                          setForm({ ...form, time: e.target.value })
+                        }
+                        onBlur={parseTime}
+                        className="w-full p-2.5 rounded-xl bg-black/40 text-sm font-mono text-center placeholder-gray-700 text-pink-400 focus:text-pink-300 placeholder-gray-700"
+                        placeholder="00:00"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="mt-8 flex gap-3 relative z-0">
+                {item && (
+                  <button
+                    onClick={() => {
+                      onDelete(item.id);
+                      onClose();
+                    }}
+                    className="p-3 text-red-500 bg-red-900/10 rounded-xl border border-red-900/30 hover:bg-red-900/30 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] transition-all neon-btn"
+                  >
+                    <Icons.Trash />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (form.name) {
+                      onSave({ ...form, id: item ? item.id : Date.now() });
+                      onClose();
                     }
-                    if (!groups[key]) groups[key] = { title: displayTitle, items: [] };
-                    groups[key].items.push(item);
-                });
-                const sortedKeys = Object.keys(groups).sort((a, b) => { if (a === 'MISC_FILE') return 1; if (b === 'MISC_FILE') return -1; return b.localeCompare(a); });
-                sortedKeys.forEach(k => {
-                    groups[k].items.sort((a, b) => {
-                        if (a.status === STATUS.DOING && b.status !== STATUS.DOING) return -1;
-                        if (a.status !== STATUS.DOING && b.status === STATUS.DOING) return 1;
-                        return b.id - a.id;
-                    });
-                });
-                return sortedKeys.map(k => groups[k]);
-            }, [items, activeFilters]);
+                  }}
+                  className="neon-btn flex-1 bg-cyan-600/20 border border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm"
+                >
+                  EXECUTE_COMMAND
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
 
-            const filterButtons = [
-                { 
-                    key: 'ALL', label: 'ALL', 
-                    style: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/50 shadow-[0_0_15px_rgba(0,243,255,0.3)]' 
-                }, 
-                { 
-                    key: 'ACTV', label: 'SYNCING', clickKey: 'DOING',
-                    style: 'bg-pink-500/20 text-pink-400 border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
-                },
-                { 
-                    key: 'TODO', label: 'WAITING', clickKey: 'TODO',
-                    style: 'bg-gray-600/40 text-gray-300 border-gray-500/50 shadow-[0_0_15px_rgba(160,160,160,0.3)]' 
-                },
-                { 
-                    key: 'DONE', label: 'COMPLETE', clickKey: 'DONE',
-                    style: 'bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_15px_rgba(0,255,157,0.3)]' 
-                }
-            ];
+      const ImportModal = ({ isOpen, onClose, onImport }) => {
+        const [code, setCode] = useState("");
+        if (!isOpen) return null;
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/10 backdrop-blur-[10px] p-6">
+            <div className="modal-enter w-full max-w-sm bg-[#0f0f13] border border-cyan-500/40 rounded-2xl p-6 shadow-[0_0_60px_rgba(0,0,0,0.9),0_0_30px_rgba(0,243,255,0.15)] relative overflow-hidden group">
+              <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(transparent_50%,rgba(0,243,255,0.05)_50%)] bg-[length:100%_4px]"></div>
+              <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
+                <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#0f0]"></span>
+                  PASTE_NEURAL_CODE
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="text-gray-500 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full"
+                >
+                  <Icons.X />
+                </button>
+              </div>
+              <div className="relative z-10">
+                <textarea
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full h-32 p-3 rounded-xl bg-black/40 text-xs font-mono text-green-400 placeholder-gray-700 focus:shadow-[0_0_15px_rgba(0,255,157,0.2)] resize-none"
+                  placeholder="PASTE ENCRYPTED STRING HERE..."
+                />
+              </div>
+              <div className="mt-4 flex gap-3 relative z-10">
+                <button
+                  onClick={() => {
+                    if (code) {
+                      onImport(code);
+                      onClose();
+                    }
+                  }}
+                  className="neon-btn flex-1 bg-green-600/20 border border-green-500 text-green-400 hover:bg-green-500 hover:text-black font-bold p-3 rounded-xl font-header tracking-widest text-sm"
+                >
+                  DECRYPT & SYNC
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
 
-            return (
-                <div className="min-h-screen relative overflow-hidden">
-                    <div id="parallax-container"><div className="bg-grid"></div><div className="bg-glow"></div><div className="bg-particles"></div></div>
-                    <div className="top-light"></div>
-                    {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-                    
-                    {/* Fixed Transparent Header */}
-                    <div className="app-header px-4">
-                        <h1 className="text-2xl font-header glitch-text" data-text="NEURAL_DECK">NEURAL<span className="text-cyan-600">_</span>DECK</h1>
-                        <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>SYS.V11.15 // </div>
-                    </div>
-                    
-                    {/* Fixed Transparent Filter */}
-                    <div className="filter-bar px-2 gap-1 overflow-x-auto no-scrollbar">
-                        {filterButtons.map(f => {
-                            let isActive = false;
-                            if (f.key === 'ALL') {
-                                isActive = isAll;
-                            } else {
-                                const checkKey = f.clickKey || f.key;
-                                isActive = !isAll && activeFilters.includes(checkKey);
-                            }
-                            const clickKey = f.clickKey || f.key;
-                            return (
-                                <button key={f.key} onClick={() => toggleFilter(clickKey)} className={`flex-1 py-1.5 px-1 text-xs font-header font-bold tracking-widest rounded transition-all neon-btn ${isActive ? `${f.style} border` : 'text-gray-600 hover:text-gray-300 border border-transparent hover:bg-white/5'}`}>{f.label}</button>
-                            );
-                        })}
-                    </div>
+      const App = () => {
+        const [items, setItems] = useState([]);
+        const [history, setHistory] = useState({ past: [], future: [] });
 
-                    <div id="scroll-viewport">
-                        <div className="max-w-2xl mx-auto pb-24 px-0">
-                            {items.length === 0 && <div className="mt-20 text-center text-gray-700 font-mono text-xs border border-dashed border-gray-800 mx-8 py-10 rounded animate-pulse">NO DATA STREAM<br/>INITIATE NEW PROTOCOL [+]</div>}
-                            {groupedList.map((group, idx) => (
-                                <div key={idx} className="mb-0">
-                                    <div className="month-header px-4 py-1.5 flex items-center justify-between">
-                                        <span className="text-cyan-500 font-header text-[10px] tracking-[0.2em] font-bold opacity-80">{group.title}</span>
-                                        <span className="text-[9px] text-gray-500 font-mono bg-white/5 px-1.5 rounded">{group.items.length}</span>
-                                    </div>
-                                    <div>{group.items.map((item, i) => <RowItem key={item.id} item={item} onClick={openEdit} delayIndex={i} />)}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+        const [activeFilters, setActiveFilters] = useState([
+          "TODO",
+          "DOING",
+          "DONE",
+        ]);
+        const [isModalOpen, setIsModalOpen] = useState(false);
+        const [isImportOpen, setIsImportOpen] = useState(false);
+        const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+        const [editingItem, setEditingItem] = useState(null);
+        const [toast, setToast] = useState(null);
 
-                    <div className="fixed bottom-8 right-6 z-40 group flex flex-col-reverse items-end gap-4 pointer-events-none">
-                        <div className="relative group/main pointer-events-auto flex items-center pr-1">
-                            <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#050508]/90 border border-cyan-500 text-cyan-400 rounded-lg text-xs font-header tracking-widest whitespace-nowrap opacity-0 group-hover/main:opacity-100 group-hover/main:translate-x-0 translate-x-4 transition-all duration-300 shadow-[0_0_15px_rgba(0,243,255,0.3)] backdrop-blur-sm pointer-events-none">NEW_PROTOCOL</div>
-                            <button onClick={openNew} className="w-16 h-16 bg-cyan-500 text-black rounded-full shadow-[0_0_20px_rgba(0,243,255,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20 hover:shadow-[0_0_25px_var(--neon-cyan)] neon-btn relative z-20"><Icons.Plus /></button>
-                        </div>
-                        <div className="flex flex-col gap-4 pb-2 items-end pr-3">
-                             <div className="fab-action pointer-events-auto relative group/item flex items-center">
-                                <div className="absolute right-full mr-4 px-3 py-1.5 bg-[#050508]/90 border border-green-500 text-green-400 rounded-lg text-[10px] font-header tracking-widest whitespace-nowrap opacity-0 group-hover/item:opacity-100 group-hover/item:translate-x-0 translate-x-4 transition-all duration-300 shadow-[0_0_15px_rgba(0,255,157,0.3)] backdrop-blur-sm pointer-events-none">DATA_INJECT</div>
-                                <button onClick={() => setIsImportOpen(true)} className="w-12 h-12 bg-black/80 border border-green-500/50 text-green-400 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,255,157,0.2)] hover:bg-green-500 hover:text-black hover:scale-110 transition-all delay-75"><Icons.Download /></button>
-                            </div>
-                            <div className="fab-action pointer-events-auto relative group/item flex items-center">
-                                <div className="absolute right-full mr-4 px-3 py-1.5 bg-[#050508]/90 border border-pink-500 text-pink-400 rounded-lg text-[10px] font-header tracking-widest whitespace-nowrap opacity-0 group-hover/item:opacity-100 group-hover/item:translate-x-0 translate-x-4 transition-all duration-300 shadow-[0_0_15px_rgba(236,72,153,0.3)] backdrop-blur-sm pointer-events-none">DATA_EXTRACT</div>
-                                <button onClick={handleExport} className="w-12 h-12 bg-black/80 border border-pink-500/50 text-pink-400 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(236,72,153,0.2)] hover:bg-pink-500 hover:text-black hover:scale-110 transition-all"><Icons.Share /></button>
-                            </div>
-                        </div>
-                    </div>
-                    <EditModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} item={editingItem} onSave={handleSave} onDelete={handleDelete} />
-                    <ImportModal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} onImport={handleImport} />
-                </div>
-            );
+        const [isSelectMode, setIsSelectMode] = useState(false);
+        const [selectedIds, setSelectedIds] = useState(new Set());
+
+        useEffect(() => {
+          const bg = document.getElementById("parallax-container");
+          if (!bg) return;
+          const handleMouseMove = (e) => {
+            const x = (window.innerWidth - e.pageX) / 25;
+            const y = (window.innerHeight - e.pageY) / 25;
+            bg.style.transform = `translate(${x}px, ${y}px)`;
+          };
+          window.addEventListener("mousemove", handleMouseMove);
+          return () => window.removeEventListener("mousemove", handleMouseMove);
+        }, []);
+
+        useEffect(() => {
+          setItems(safeStorage.get("cyber_deck_tactical"));
+        }, []);
+
+        useEffect(() => {
+          if (
+            items.length > 0 ||
+            safeStorage.get("cyber_deck_tactical").length > 0
+          ) {
+            safeStorage.set("cyber_deck_tactical", items);
+          }
+        }, [items]);
+
+        const updateItemsWithHistory = (newItems) => {
+          setHistory((prev) => ({
+            past: [...prev.past, items],
+            future: [],
+          }));
+          setItems(newItems);
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const undo = () => {
+          if (history.past.length === 0) return;
+          const previous = history.past[history.past.length - 1];
+          const newPast = history.past.slice(0, -1);
+          setHistory({
+            past: newPast,
+            future: [items, ...history.future],
+          });
+          setItems(previous);
+        };
+
+        const redo = () => {
+          if (history.future.length === 0) return;
+          const next = history.future[0];
+          const newFuture = history.future.slice(1);
+          setHistory({
+            past: [...history.past, items],
+            future: newFuture,
+          });
+          setItems(next);
+        };
+
+        const handleSave = (item) => {
+          const newItems = [...items];
+          const idx = newItems.findIndex((i) => i.id === item.id);
+          if (idx > -1) {
+            newItems[idx] = item;
+          } else {
+            newItems.unshift(item);
+          }
+          updateItemsWithHistory(newItems);
+        };
+
+        const handleDelete = (id) => {
+          const newItems = items.filter((i) => i.id !== id);
+          updateItemsWithHistory(newItems);
+        };
+
+        const toggleSelectMode = () => {
+          setIsSelectMode(!isSelectMode);
+          setSelectedIds(new Set());
+        };
+
+        const handleSelect = (id) => {
+          const newSelected = new Set(selectedIds);
+          if (newSelected.has(id)) {
+            newSelected.delete(id);
+          } else {
+            newSelected.add(id);
+          }
+          setSelectedIds(newSelected);
+        };
+
+        const handleSelectAll = () => {
+          if (selectedIds.size === currentFilteredItems.length) {
+            setSelectedIds(new Set());
+          } else {
+            const newSelected = new Set(currentFilteredItems.map((i) => i.id));
+            setSelectedIds(newSelected);
+          }
+        };
+
+        const confirmBatchDelete = () => {
+          setIsConfirmOpen(true);
+        };
+
+        const executeBatchDelete = () => {
+          const newItems = items.filter((i) => !selectedIds.has(i.id));
+          updateItemsWithHistory(newItems);
+          setSelectedIds(new Set());
+          setIsConfirmOpen(false);
+        };
+
+        const openNew = () => {
+          setEditingItem(null);
+          setIsModalOpen(true);
+        };
+        const openEdit = (item) => {
+          setEditingItem(item);
+          setIsModalOpen(true);
+        };
+
+        const handleExport = () => {
+          try {
+            const miniData = items.map((i) => {
+              let s = 0;
+              if (i.status === "WATCHING") s = 1;
+              if (i.status === "COMPLETED") s = 2;
+              return [i.id, i.name, i.date, i.ep, i.time, s];
+            });
+            const jsonStr = JSON.stringify(miniData);
+            const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+            const textArea = document.createElement("textarea");
+            textArea.value = compressed;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+              if (document.execCommand("copy"))
+                setToast("LZ-COMPRESSED CODE COPIED");
+              else setToast("EXPORT FAILED: PERMISSION DENIED");
+            } catch (err) {
+              setToast("EXPORT FAILED");
+              console.error("Copy failed", err);
+            }
+            document.body.removeChild(textArea);
+          } catch (e) {
+            setToast("EXPORT FAILED");
+            console.error(e);
+          }
+        };
+
+        const handleImport = (code) => {
+          try {
+            let jsonStr;
+            if (code.trim().startsWith("[")) {
+              jsonStr = code;
+            } else {
+              jsonStr = LZString.decompressFromEncodedURIComponent(code);
+            }
+
+            if (!jsonStr) throw new Error("Decompression Failed");
+
+            const parsedData = JSON.parse(jsonStr);
+            if (Array.isArray(parsedData)) {
+              const newItems = parsedData.map((item) => {
+                return {
+                  id: item[0],
+                  name: item[1],
+                  date: item[2],
+                  ep: item[3],
+                  time: item[4],
+                  status:
+                    item[5] === 1
+                      ? "WATCHING"
+                      : item[5] === 2
+                      ? "COMPLETED"
+                      : "UNWATCHED",
+                };
+              });
+              const mergedMap = new Map(items.map((i) => [i.id, i]));
+              newItems.forEach((i) => mergedMap.set(i.id, i));
+              const mergedItems = Array.from(mergedMap.values());
+
+              updateItemsWithHistory(mergedItems);
+              setToast("NEURAL SYNC COMPLETE");
+            } else throw new Error();
+          } catch (e) {
+            setToast("SYNC ERROR: INVALID CODE");
+            console.error(e);
+          }
+        };
+
+        const toggleFilter = (key) => {
+          if (key === "ALL") {
+            setActiveFilters(["TODO", "DOING", "DONE"]);
+            return;
+          }
+          const isAllSelected = activeFilters.length === 3;
+          if (isAllSelected) {
+            setActiveFilters([key]);
+          } else {
+            if (activeFilters.includes(key)) {
+              const next = activeFilters.filter((f) => f !== key);
+              setActiveFilters(
+                next.length === 0 ? ["TODO", "DOING", "DONE"] : next
+              );
+            } else {
+              setActiveFilters([...activeFilters, key]);
+            }
+          }
+        };
+
+        const isAll = activeFilters.length === 3;
+
+        const { groupedList, currentFilteredItems } = useMemo(() => {
+          const groups = {};
+          const filteredItems = items.filter((i) => {
+            const key = Object.keys(STATUS).find((k) => STATUS[k] === i.status);
+            return activeFilters.includes(key);
+          });
+
+          filteredItems.forEach((item) => {
+            let key = "MISC_FILE";
+            let displayTitle = "MISC // ARCHIVE";
+            if (item.date) {
+              if (!item.date.includes("0/0") && !item.date.includes("0-0")) {
+                const clean = item.date.replace(/[\/\.]/g, "-");
+                const parts = clean.split("-");
+                if (parts.length >= 2) {
+                  key = `${parts[0]}-${parts[1]}`;
+                  displayTitle = `LOG // ${parts[0]}.${parts[1]}`;
+                }
+              }
+            }
+            if (!groups[key]) groups[key] = { title: displayTitle, items: [] };
+            groups[key].items.push(item);
+          });
+          const sortedKeys = Object.keys(groups).sort((a, b) => {
+            if (a === "MISC_FILE") return 1;
+            if (b === "MISC_FILE") return -1;
+            return b.localeCompare(a);
+          });
+          sortedKeys.forEach((k) => {
+            groups[k].items.sort((a, b) => {
+              if (a.status === STATUS.DOING && b.status !== STATUS.DOING)
+                return -1;
+              if (a.status !== STATUS.DOING && b.status === STATUS.DOING)
+                return 1;
+              return b.id - a.id;
+            });
+          });
+          return {
+            groupedList: sortedKeys.map((k) => groups[k]),
+            currentFilteredItems: filteredItems,
+          };
+        }, [items, activeFilters]);
+
+        const filterButtons = [
+          { key: "ALL", label: "ALL" },
+          { key: "ACTV", label: "SYNCING", clickKey: "DOING" },
+          { key: "TODO", label: "WAITING", clickKey: "TODO" },
+          { key: "DONE", label: "COMPLETE", clickKey: "DONE" },
+        ];
+
+        return (
+          <div className="min-h-screen relative overflow-hidden">
+            <div id="parallax-container">
+              <div className="bg-grid"></div>
+              <div className="bg-glow"></div>
+              <div className="bg-particles"></div>
+            </div>
+            <div className="top-light"></div>
+            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+
+            <div className="app-header px-4">
+              <h1
+                className="text-2xl font-header glitch-text"
+                data-text="NEURAL_DECK"
+              >
+                NEURAL<span className="text-cyan-600">_</span>DECK
+              </h1>
+              <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                SYS.V12.12 //
+              </div>
+            </div>
+
+            <div className="filter-bar px-2 gap-1 overflow-x-auto no-scrollbar">
+              {filterButtons.map((f) => {
+                let isActive = false;
+                if (f.key === "ALL") {
+                  isActive = isAll;
+                } else {
+                  const checkKey = f.clickKey || f.key;
+                  isActive = !isAll && activeFilters.includes(checkKey);
+                }
+                const clickKey = f.clickKey || f.key;
+
+                let activeStyle = "";
+                if (f.key === "ALL")
+                  activeStyle =
+                    "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_15px_rgba(0,243,255,0.3)]";
+                else if (f.key === "ACTV")
+                  activeStyle =
+                    "bg-pink-500/20 text-pink-400 border border-pink-500/50 shadow-[0_0_15px_rgba(236,72,153,0.3)]";
+                else if (f.key === "TODO")
+                  activeStyle =
+                    "bg-gray-600/40 text-gray-300 border border-gray-500/50 shadow-[0_0_15px_rgba(160,160,160,0.3)]";
+                else if (f.key === "DONE")
+                  activeStyle =
+                    "bg-green-500/20 text-green-400 border border-green-500/50 shadow-[0_0_15px_rgba(0,255,157,0.3)]";
+
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => toggleFilter(clickKey)}
+                    className={`flex-1 py-1.5 px-1 text-xs font-header font-bold tracking-widest rounded transition-all neon-btn ${
+                      isActive
+                        ? activeStyle
+                        : "text-gray-600 hover:text-gray-300 border border-transparent hover:bg-white/5"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div id="scroll-viewport">
+              <div className="max-w-2xl mx-auto pb-24 px-0">
+                {items.length === 0 && (
+                  <div className="mt-20 text-center text-gray-700 font-mono text-xs border border-dashed border-gray-800 mx-8 py-10 rounded animate-pulse">
+                    NO DATA STREAM
+                    <br />
+                    INITIATE NEW PROTOCOL [+]
+                  </div>
+                )}
+                {groupedList.map((group, idx) => (
+                  <div key={idx} className="mb-0">
+                    <div className="month-header px-4 py-1.5 flex items-center justify-between">
+                      <span className="text-cyan-500 font-header text-[10px] tracking-[0.2em] font-bold opacity-80">
+                        {group.title}
+                      </span>
+                      <span className="text-[9px] text-gray-500 font-mono bg-white/5 px-1.5 rounded">
+                        {group.items.length}
+                      </span>
+                    </div>
+                    <div>
+                      {group.items.map((item, i) => (
+                        <RowItem
+                          key={item.id}
+                          item={item}
+                          onClick={openEdit}
+                          delayIndex={i}
+                          isSelectMode={isSelectMode}
+                          isSelected={selectedIds.has(item.id)}
+                          onSelect={handleSelect}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="fixed bottom-8 left-6 z-40 flex gap-4">
+              <button
+                onClick={undo}
+                disabled={history.past.length === 0}
+                className="w-12 h-12 bg-black/80 border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-white/10 active:scale-95 transition-all neon-btn disabled:opacity-30 disabled:pointer-events-none"
+                title="UNDO"
+              >
+                <Icons.Undo />
+              </button>
+              <button
+                onClick={redo}
+                disabled={history.future.length === 0}
+                className="w-12 h-12 bg-black/80 border border-white/20 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-white/10 active:scale-95 transition-all neon-btn disabled:opacity-30 disabled:pointer-events-none"
+                title="REDO"
+              >
+                <Icons.Redo />
+              </button>
+            </div>
+
+            <div className="fixed bottom-12 right-8 z-40 flex flex-row-reverse items-end gap-4">
+              <div className="relative group/main">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-[#050508]/90 border border-cyan-500 text-cyan-400 rounded text-[10px] font-header tracking-widest whitespace-nowrap opacity-0 group-hover/main:opacity-100 transition-opacity pointer-events-none shadow-[0_0_10px_rgba(0,243,255,0.3)]">
+                  NEW_PROTOCOL
+                </div>
+                <div className="absolute bottom-full right-1/2 translate-x-1/2 pb-6 flex flex-col gap-3 items-center opacity-0 group-hover/main:opacity-100 pointer-events-none group-hover/main:pointer-events-auto transition-all duration-200 translate-y-2 group-hover/main:translate-y-0">
+                  <div className="flex items-center gap-3 relative group/import">
+                    <div className="absolute right-full mr-3 px-2 py-1 bg-[#050508]/90 border border-green-500 text-green-400 rounded text-[10px] font-header opacity-0 group-hover/import:opacity-100 transition-opacity whitespace-nowrap shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+                      DATA_INJECT
+                    </div>
+                    <button
+                      onClick={() => setIsImportOpen(true)}
+                      className="w-10 h-10 bg-black/80 border border-green-500/50 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500 hover:text-black transition-all shadow-[0_0_10px_rgba(0,255,157,0.2)]"
+                    >
+                      <Icons.Download />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 relative group/export">
+                    <div className="absolute right-full mr-3 px-2 py-1 bg-[#050508]/90 border border-pink-500 text-pink-400 rounded text-[10px] font-header opacity-0 group-hover/export:opacity-100 transition-opacity whitespace-nowrap shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+                      DATA_EXTRACT
+                    </div>
+                    <button
+                      onClick={handleExport}
+                      className="w-10 h-10 bg-black/80 border border-pink-500/50 text-pink-400 rounded-full flex items-center justify-center hover:bg-pink-500 hover:text-black transition-all shadow-[0_0_10px_rgba(236,72,153,0.2)]"
+                    >
+                      <Icons.Share />
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={openNew}
+                  className="w-16 h-16 bg-cyan-500 text-black rounded-full shadow-[0_0_20px_rgba(0,243,255,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all border-2 border-white/20 hover:shadow-[0_0_25px_var(--neon-cyan)] neon-btn relative z-20"
+                >
+                  <Icons.Plus />
+                </button>
+              </div>
+
+              <div className="relative group/select">
+                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#050508]/90 border border-green-500 text-green-400 rounded text-[10px] font-header opacity-0 group-hover/select:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+                  SELECT MODE
+                </div>
+                {isSelectMode && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-6 flex flex-col items-center opacity-0 group-hover/select:opacity-100 pointer-events-none group-hover/select:pointer-events-auto transition-all duration-200 translate-y-2 group-hover/select:translate-y-0">
+                    <div className="relative group/all">
+                      <div className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-[#050508]/90 border border-green-500 text-green-400 rounded text-[10px] font-header opacity-0 group-hover/all:opacity-100 transition-opacity whitespace-nowrap shadow-[0_0_10px_rgba(0,255,157,0.3)]">
+                        SELECT ALL
+                      </div>
+                      <button
+                        onClick={handleSelectAll}
+                        className="w-10 h-10 bg-black/80 border border-green-500/50 text-green-400 rounded-full flex items-center justify-center hover:bg-green-500 hover:text-black transition-all shadow-[0_0_10px_rgba(0,255,157,0.2)]"
+                      >
+                        <Icons.CheckDouble />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={toggleSelectMode}
+                  className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all border-2 border-white/20 neon-btn relative z-20 ${
+                    isSelectMode
+                      ? "bg-green-500 text-black shadow-[0_0_25px_var(--neon-green)]"
+                      : "bg-black/80 text-green-400 border-green-500/50"
+                  }`}
+                >
+                  <Icons.CheckSquare />
+                </button>
+              </div>
+
+              {isSelectMode && selectedIds.size > 0 && (
+                <div className="relative group/delete batch-btn-enter">
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-[#050508]/90 border border-pink-500 text-pink-400 rounded text-[10px] font-header opacity-0 group-hover/delete:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+                    DELETE SELECTION
+                  </div>
+                  <button
+                    onClick={confirmBatchDelete}
+                    className="w-16 h-16 bg-pink-500 text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(236,72,153,0.6)] transition-all border-2 border-white/20 hover:shadow-[0_0_25px_var(--neon-pink)] neon-btn"
+                  >
+                    <Icons.Trash />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <ConfirmModal
+              isOpen={isConfirmOpen}
+              onClose={() => setIsConfirmOpen(false)}
+              onConfirm={executeBatchDelete}
+              message={`DELETE ${selectedIds.size} PROTOCOLS?`}
+            />
+            <EditModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              item={editingItem}
+              onSave={handleSave}
+              onDelete={handleDelete}
+            />
+            <ImportModal
+              isOpen={isImportOpen}
+              onClose={() => setIsImportOpen(false)}
+              onImport={handleImport}
+            />
+          </div>
+        );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
     </script>
-</body>
+  </body>
 </html>
