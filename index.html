@@ -11,10 +11,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <!-- 移除 LZ-String 依赖 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- 引入 VT323 (经典终端点阵等宽), Orbitron, Share Tech Mono -->
     <link
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap"
       rel="stylesheet"
@@ -43,7 +42,6 @@
         width: 100vw;
       }
 
-      /* --- 滚动容器 --- */
       #scroll-viewport {
         position: fixed;
         top: var(--scroll-top);
@@ -72,7 +70,6 @@
         box-shadow: 0 0 10px var(--neon-cyan);
       }
 
-      /* --- 视差背景 --- */
       #parallax-container {
         position: fixed;
         top: -10%;
@@ -172,7 +169,6 @@
         }
       }
 
-      /* 字体定义 */
       .font-header {
         font-family: "Orbitron", sans-serif;
       }
@@ -232,7 +228,6 @@
         }
       }
 
-      /* 卡片 */
       .compact-card-wrapper {
         height: 54px;
         min-height: 54px;
@@ -323,7 +318,6 @@
         box-shadow: 0 0 10px var(--glow-color);
       }
 
-      /* V12.12: 用户自定义呼吸动画 */
       @keyframes subtle-pulse {
         0%,
         100% {
@@ -342,7 +336,6 @@
         will-change: opacity, text-shadow;
       }
 
-      /* 顶部栏 */
       .app-header {
         position: fixed;
         top: 0;
@@ -375,6 +368,7 @@
         display: flex;
         align-items: center;
       }
+
       .month-header {
         position: sticky;
         top: 0;
@@ -385,6 +379,11 @@
         border-top: none;
         box-shadow: none;
         margin-top: 0;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .month-header:hover {
+        background: rgba(0, 243, 255, 0.1);
       }
 
       @keyframes holographic-pop {
@@ -451,7 +450,6 @@
         }
       }
 
-      /* 通用输入框样式 */
       input,
       textarea {
         font-size: 16px !important;
@@ -470,7 +468,6 @@
         letter-spacing: 1px;
       }
 
-      /* 自定义下拉框动画 */
       @keyframes dropdown-enter {
         from {
           opacity: 0;
@@ -854,7 +851,6 @@
                       style.icon
                     )}
                   </div>
-                  {/* 调整 1: 左侧文字整体上移 1px */}
                   <div className="flex flex-col justify-center h-full pt-1 translate-y-[-1px]">
                     <span
                       className={`text-[9px] font-header tracking-widest leading-none mb-0.5 transition-colors duration-300 ${
@@ -871,7 +867,6 @@
                   </div>
                 </div>
 
-                {/* Right Side Content */}
                 <div className="flex items-center gap-2 pl-2 text-right shrink-0 relative z-10">
                   {isComplete ? (
                     <div
@@ -887,8 +882,6 @@
                     <div className="w-2"></div>
                   ) : (
                     <>
-                      {/* V12.12 Fix: ep. alignment and gap 0 */}
-                      {/* 调整 2: EP 组合下移 2px */}
                       <div className="flex items-baseline justify-end gap-0 w-24 translate-y-[2px]">
                         <span className="text-pink-500 font-header text-[11px] mb-0">
                           ep.
@@ -905,7 +898,6 @@
                       </div>
 
                       {item.time && (
-                        /* 调整 3: 时间显示下移 3px */
                         <div
                           className="text-gray-500 group-hover:text-white font-lcd text-[14px] tracking-widest text-right transition-colors duration-300 w-[42px] translate-y-[3px]"
                           style={{ textShadow: "0 0 3px currentColor" }}
@@ -1233,6 +1225,54 @@
         );
       };
 
+      // --- Collapsible Month Group Component ---
+      const MonthGroup = ({ group, isCollapsed, onToggle, children }) => {
+        const [overflowVisible, setOverflowVisible] = useState(!isCollapsed);
+
+        useEffect(() => {
+          let timer;
+          if (!isCollapsed) {
+            timer = setTimeout(() => setOverflowVisible(true), 300);
+          } else {
+            setOverflowVisible(false);
+          }
+          return () => clearTimeout(timer);
+        }, [isCollapsed]);
+
+        return (
+          <div className="mb-0">
+            <div
+              onClick={onToggle}
+              className="month-header px-4 py-1.5 flex items-center justify-between cursor-pointer group/header select-none hover:bg-cyan-500/10 transition-colors"
+            >
+              <span className="text-cyan-500 font-header text-[10px] tracking-[0.2em] font-bold opacity-80 group-hover/header:text-cyan-400 transition-colors">
+                {group.title}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-gray-500 font-mono bg-white/5 px-1.5 rounded">
+                  {group.items.length}
+                </span>
+                <span
+                  className={`text-cyan-500 transform transition-transform duration-300 ${
+                    isCollapsed ? "-rotate-90" : "rotate-0"
+                  }`}
+                >
+                  <Icons.ChevronDown />
+                </span>
+              </div>
+            </div>
+            {/* Visual Buffer for No-Clipping */}
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                isCollapsed ? "max-h-0 opacity-0" : "max-h-[5000px] opacity-100"
+              } ${overflowVisible ? "overflow-visible" : "overflow-hidden"}`}
+            >
+              <div className="p-2 -m-2">{children}</div>
+            </div>
+          </div>
+        );
+      };
+
       const App = () => {
         const [items, setItems] = useState([]);
         const [history, setHistory] = useState({ past: [], future: [] });
@@ -1250,6 +1290,7 @@
 
         const [isSelectMode, setIsSelectMode] = useState(false);
         const [selectedIds, setSelectedIds] = useState(new Set());
+        const [collapsedKeys, setCollapsedKeys] = useState(new Set());
 
         useEffect(() => {
           const bg = document.getElementById("parallax-container");
@@ -1516,6 +1557,13 @@
 
         const isAll = activeFilters.length === 3;
 
+        const toggleGroup = (key) => {
+          const newSet = new Set(collapsedKeys);
+          if (newSet.has(key)) newSet.delete(key);
+          else newSet.add(key);
+          setCollapsedKeys(newSet);
+        };
+
         const { groupedList, currentFilteredItems } = useMemo(() => {
           const groups = {};
           const filteredItems = items.filter((i) => {
@@ -1586,7 +1634,7 @@
               </h1>
               <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                SYS.V13.2.3 // ONLINE
+                SYS.V14.1 // ONLINE
               </div>
             </div>
 
@@ -1632,7 +1680,7 @@
             </div>
 
             <div id="scroll-viewport">
-              <div className="max-w-2xl mx-auto pb-24 px-0">
+              <div className="max-w-2xl mx-auto pb-24 px-10 sm:px-10">
                 {items.length === 0 && (
                   <div className="mt-20 text-center text-gray-700 font-mono text-xs border border-dashed border-gray-800 mx-8 py-10 rounded animate-pulse">
                     NO DATA STREAM
@@ -1640,17 +1688,15 @@
                     INITIATE NEW PROTOCOL [+]
                   </div>
                 )}
-                {groupedList.map((group, idx) => (
-                  <div key={idx} className="mb-0">
-                    <div className="month-header px-4 py-1.5 flex items-center justify-between">
-                      <span className="text-cyan-500 font-header text-[10px] tracking-[0.2em] font-bold opacity-80">
-                        {group.title}
-                      </span>
-                      <span className="text-[9px] text-gray-500 font-mono bg-white/5 px-1.5 rounded">
-                        {group.items.length}
-                      </span>
-                    </div>
-                    <div>
+                {groupedList.map((group, idx) => {
+                  const isCollapsed = collapsedKeys.has(group.title);
+                  return (
+                    <MonthGroup
+                      key={idx}
+                      group={group}
+                      isCollapsed={isCollapsed}
+                      onToggle={() => toggleGroup(group.title)}
+                    >
                       {group.items.map((item, i) => (
                         <RowItem
                           key={item.id}
@@ -1662,9 +1708,9 @@
                           onSelect={handleSelect}
                         />
                       ))}
-                    </div>
-                  </div>
-                ))}
+                    </MonthGroup>
+                  );
+                })}
               </div>
             </div>
 
