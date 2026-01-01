@@ -8,13 +8,14 @@
     />
     <title>追番补番进度备忘录</title>
 
+    <!-- 核心库 CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- 引入 VT323 (经典终端点阵等宽), Orbitron, Share Tech Mono -->
+    <!-- 字体库: VT323(点阵), Orbitron(标题), Share Tech Mono(液晶) -->
     <link
       href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=VT323&family=Share+Tech+Mono&display=swap"
       rel="stylesheet"
@@ -99,6 +100,7 @@
         transform-origin: center top;
         opacity: 0.6;
       }
+      /* 静态氛围光 (Static Glow) */
       .bg-glow {
         position: absolute;
         inset: 0;
@@ -176,7 +178,6 @@
       .font-header {
         font-family: "Orbitron", sans-serif;
       }
-      /* 使用 VT323 替代 DotGothic16 以获得更纯粹的像素等宽效果 */
       .font-matrix {
         font-family: "VT323", monospace;
         font-weight: 400;
@@ -324,6 +325,7 @@
         box-shadow: 0 0 10px var(--glow-color);
       }
 
+      /* V12.12: 用户自定义呼吸动画 */
       @keyframes subtle-pulse {
         0%,
         100% {
@@ -335,8 +337,6 @@
           text-shadow: 0 0 12px currentColor;
         }
       }
-      /* V12.11: 统一呼吸动画，确保所有呼吸元素使用相同的 animation */
-      /* 您可以在这里调整 duration (例如 2.5s) 来改变 COMPLETE 和 EP 的呼吸速度 */
       .text-pulse {
         animation: subtle-pulse 3s infinite ease-in-out;
         transform: translateZ(0);
@@ -809,6 +809,7 @@
             label: "SYNCING",
             icon: <Icons.Play />,
           },
+          // V12.12 Fix: COMPLETE color logic update
           [STATUS.DONE]: {
             glowColor: "#00ff9d",
             textColor:
@@ -872,7 +873,6 @@
                   </div>
                 </div>
 
-                {/* Right Side Content */}
                 <div className="flex items-center gap-2 pl-2 text-right shrink-0 relative z-10">
                   {isComplete ? (
                     <div
@@ -888,6 +888,7 @@
                     <div className="w-2"></div>
                   ) : (
                     <>
+                      {/* V12.12 Fix: ep. alignment and gap 0 */}
                       <div className="flex items-baseline justify-end gap-0 w-24">
                         <span className="text-pink-500 font-header text-[11px] mb-0">
                           ep.
@@ -1196,7 +1197,7 @@
               <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-3 relative z-10">
                 <h3 className="text-cyan-400 font-header text-sm tracking-widest flex items-center gap-2">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#0f0]"></span>
-                  PASTE_NEURAL_CODE
+                  PASTE_SYNC_CODE
                 </h3>
                 <button
                   onClick={onClose}
@@ -1430,7 +1431,7 @@
               const mergedItems = Array.from(mergedMap.values());
 
               updateItemsWithHistory(mergedItems);
-              setToast("NEURAL SYNC COMPLETE");
+              setToast("ANIME SYNC COMPLETE");
             } else throw new Error();
           } catch (e) {
             setToast("SYNC ERROR: INVALID CODE");
@@ -1523,13 +1524,13 @@
             <div className="app-header px-4">
               <h1
                 className="text-2xl font-header glitch-text"
-                data-text="NEURAL_DECK"
+                data-text="ANIME_TERMINAL"
               >
-                NEURAL<span className="text-cyan-600">_</span>DECK
+                ANIME_TERMINAL
               </h1>
               <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                SYS.V12.12 //
+                SYS.V12.13 // ONLINE
               </div>
             </div>
 
