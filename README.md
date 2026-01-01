@@ -92,4 +92,4 @@ This project is a **Single File Application**. You don't need a server to run it
 [MIT License](https://www.google.com/search?q=LICENSE "null") © 2026
 
 > 
-> *System.V12.12 //* *Ready for data injection...*
+> *System.V13.2.3 //* *Ready for data injection...*
