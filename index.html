@@ -1587,18 +1587,31 @@
             if (!groups[key]) groups[key] = { title: displayTitle, items: [] };
             groups[key].items.push(item);
           });
+          // Sort keys: MISC last, others desc
           const sortedKeys = Object.keys(groups).sort((a, b) => {
             if (a === "MISC_FILE") return 1;
             if (b === "MISC_FILE") return -1;
             return b.localeCompare(a);
           });
 
+          // V12.13: Advanced Sorting Logic
           sortedKeys.forEach((k) => {
             groups[k].items.sort((a, b) => {
-              if (a.status === STATUS.DOING && b.status !== STATUS.DOING)
-                return -1;
-              if (a.status !== STATUS.DOING && b.status === STATUS.DOING)
-                return 1;
+              // 1. Status Weight: WATCHING(1) < UNWATCHED(2) < COMPLETED(3)
+              const statusWeight = {
+                WATCHING: 1,
+                UNWATCHED: 2,
+                COMPLETED: 3,
+              };
+
+              const weightA = statusWeight[a.status] || 4;
+              const weightB = statusWeight[b.status] || 4;
+
+              if (weightA !== weightB) {
+                return weightA - weightB; // Lower weight (Watching) comes first
+              }
+
+              // 2. ID (Time) Descending: Newest First
               return b.id - a.id;
             });
           });
@@ -1622,9 +1635,6 @@
               <div className="bg-glow"></div>
               <div className="bg-particles"></div>
             </div>
-            <div className="top-light"></div>
-            {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-
             <div className="app-header px-4">
               <h1
                 className="text-2xl font-header glitch-text"
@@ -1634,7 +1644,7 @@
               </h1>
               <div className="text-[10px] text-gray-500 font-mono mb-1.5 flex items-center gap-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                SYS.V14.1 // ONLINE
+                SYS.V14.2 // ONLINE
               </div>
             </div>
 
