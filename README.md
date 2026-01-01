@@ -4,6 +4,8 @@
 > **A Retro Cyberpunk, Todo-list style anime tracker.**
 > 
 > **一个复古赛博风格、类 Todo-list 的番剧备忘录。**
+<img width="1652" height="1044" alt="image" src="https://github.com/user-attachments/assets/76eb3ebf-3ed1-4ea9-9239-09e79038aa1e" />
+
 
 ## 📖 Introduction // 简介
 
