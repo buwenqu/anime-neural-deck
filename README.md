@@ -29,7 +29,7 @@ With **Retro Cyberpunk style** visuals, including parallax deep-space background
 
     - **磁悬浮卡片**：列表项在悬停时会浮起并发出辉光，模拟 3D 界面。
 
-### 🛠️ Functionality //核心功能
+### 🛠️ Functionality // 核心功能
 
 - **Todo-list Workflow**: Manage anime status easily: `WAITING` (Todo), `SYNCING` (Doing), and `COMPLETE` (Done).
 
@@ -37,9 +37,9 @@ With **Retro Cyberpunk style** visuals, including parallax deep-space background
 - **Convenient Operations**: Support for batch selection, batch deletion, and Undo/Redo operation.
 
     - **便捷操作**：支持批量选择、批量删除以及撤销/重做操作。
-- **Serverless Sync**: No backend required. Data is stored locally and can be synchronized across devices using an **LZ-compressed** *ANIME SYNC CODE*.
+- **Serverless Sync**: No backend required. Data is stored locally and can be synchronized across devices using an **Raw Stream** *ANIME SYNC CODE*.
 
-    - **无服务器同步**：无需后端。数据本地存储，并可通过**LZ压缩**的“*番剧同步码*”在不同设备间一键同步。
+    - **无服务器同步**：无需后端。数据本地存储，并可通过**纯文本流**的“*番剧同步码*”在不同设备间一键同步。
 - **Smart Sync**: Intelligent merging algorithm that updates existing records and injects new ones during import, ensuring no data loss or overwrite.
 
     - **智能同步**：导入数据时采用非破坏性合并算法。系统会自动更新现有记录并注入新条目，不会暴力覆盖，确保本地数据的完整性。
@@ -82,7 +82,7 @@ This project is a **Single File Application**. You don't need a server to run it
 
 - **Core**: React 18 (Runtime compilation via Babel)
 - **Styling**: Tailwind CSS (CDN)
-- **Logic**: LocalStorage API, LZ-String Compression
+- **Logic**: LocalStorage API, Custom Base36 Stream
 - **Fonts**: Orbitron, VT323, Share Tech Mono (Google Fonts)
 
 ## 📄 License
